@@ -14,9 +14,10 @@ public partial class MainForm : Form
         _feeService = feeService;
         InitializeComponent();
         greetingLbl.Enabled = true;
-        greetingLbl.Text = $"¡Hola {SessionManager.CurrentUser!.FirstName}!";
+        greetingLbl.Text = $"¡Hola, {SessionManager.CurrentUser!.FirstName}!";
         Load += MainForm_Load!;
-        feesGridView.CellClick += FeesGridView_CellClick;
+        feesGridView.CellClick += FeesGridView_CellClick!;
+        newUserBtn.Click += BtnAddUser_Click!;
     }
 
     private async void MainForm_Load(object sender, EventArgs e)
@@ -82,15 +83,26 @@ public partial class MainForm : Form
 
     private async void FeesGridView_CellClick(object sender, DataGridViewCellEventArgs e)
     {
-        // Verifica que no sea el header y que sea la columna "Usuario"
-        if (e.RowIndex >= 0 && feesGridView.Columns[e.ColumnIndex].Name == "ViewUser")
+        if (e is { RowIndex: >= 0, ColumnIndex: >= 0 } &&
+            feesGridView.Columns[e.ColumnIndex].Name == "ViewUser")
         {
             var userId = (long)feesGridView.Rows[e.RowIndex].Cells["UserId"].Value;
             var user = await _userService.GetUserById(userId);
 
-            // Abre el formulario de usuario (debes crear UserDetailsForm)
             var userForm = new UserDetailsForm(user);
             userForm.ShowDialog();
+        }
+    }
+
+    private async void BtnAddUser_Click(object sender, EventArgs e)
+    {
+        var createForm = new CreateUserForm();
+        if (createForm.ShowDialog() == DialogResult.OK)
+        {
+            var newUser = createForm.CreatedUser;
+            await _userService.CreateUser(newUser!);
+            var users = await _userService.GetUsers();
+            FillUsersDataGrid(users);
         }
     }
 }
