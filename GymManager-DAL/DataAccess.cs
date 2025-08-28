@@ -12,35 +12,28 @@ public class DataAccess : IDataAccess
 
     public async Task<DataSet> Read(string query)
     {
-        try
+        if (_sqlConnection.State == ConnectionState.Closed)
         {
-            var dataSet = new DataSet();
-
             await _sqlConnection.OpenAsync();
-            await using var command = new SqlCommand(query, _sqlConnection);
-            using var adapter = new SqlDataAdapter(command);
-            adapter.Fill(dataSet);
+        }
 
-            return dataSet;
-        }
-        finally
-        {
-            await _sqlConnection.CloseAsync();
-        }
+        var dataSet = new DataSet();
+        await using var command = new SqlCommand(query, _sqlConnection);
+        using var adapter = new SqlDataAdapter(command);
+        adapter.Fill(dataSet);
+
+        return dataSet;
     }
 
     public async Task<object?> Write(string query)
     {
-        try
+        if (_sqlConnection.State == ConnectionState.Closed)
         {
             await _sqlConnection.OpenAsync();
-            await using var command = new SqlCommand(query, _sqlConnection);
-            return await command.ExecuteScalarAsync();
         }
-        finally
-        {
-            await _sqlConnection.CloseAsync();
-        }
+
+        await using var command = new SqlCommand(query, _sqlConnection);
+        return await command.ExecuteScalarAsync();
     }
 
     public async Task<bool> TestConnectionAsync()
@@ -54,10 +47,9 @@ public class DataAccess : IDataAccess
             logger.LogInformation("Connection to the database was successful.");
             return true;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            logger.LogError("Failed to connect to the database: {Message} {Exception}", e.Message,
-                e);
+            logger.LogError(ex, "Failed to connect to the database: {Message}", ex.Message);
             return false;
         }
     }
