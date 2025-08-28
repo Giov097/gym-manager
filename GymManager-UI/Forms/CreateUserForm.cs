@@ -12,6 +12,11 @@ public partial class CreateUserForm : Form
         InitializeComponent();
         btnOk.Click += BtnOk_Click!;
         btnCancel.Click += (_, _) => Close();
+        btnShowPassword.MouseDown += (_, _) => txtPassword.UseSystemPasswordChar = false;
+        btnShowPasswordRepeat.MouseDown +=
+            (_, _) => txtRepeatPassword.UseSystemPasswordChar = false;
+        btnShowPassword.MouseUp += (_, _) => txtPassword.UseSystemPasswordChar = true;
+        btnShowPasswordRepeat.MouseUp += (_, _) => txtRepeatPassword.UseSystemPasswordChar = true;
     }
 
     private void BtnOk_Click(object sender, EventArgs e)

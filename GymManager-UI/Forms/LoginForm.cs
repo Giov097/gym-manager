@@ -13,8 +13,10 @@ public partial class LoginForm : Form
     public LoginForm()
     {
         InitializeComponent();
-        _txtUsername.KeyDown += TextBox_KeyDown;
-        _txtPassword.KeyDown += TextBox_KeyDown;
+        _txtUsername.KeyDown += TextBox_KeyDown!;
+        _txtPassword.KeyDown += TextBox_KeyDown!;
+        btnShowPassword.MouseDown += (_, _) => _txtPassword.UseSystemPasswordChar = false;
+        btnShowPassword.MouseUp += (_, _) => _txtPassword.UseSystemPasswordChar = true;
         _userService = new UserService();
     }
 

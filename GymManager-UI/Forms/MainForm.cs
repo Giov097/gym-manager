@@ -14,10 +14,21 @@ public partial class MainForm : Form
         _feeService = feeService;
         InitializeComponent();
         greetingLbl.Enabled = true;
+        greetingLbl.Visible = true;
         greetingLbl.Text = $"¡Hola, {SessionManager.CurrentUser!.FirstName}!";
+        greetingLbl.Click += (_, _) => greetingMenu.Show(greetingLbl, 0, greetingLbl.Height);
         Load += MainForm_Load!;
         feesGridView.CellClick += FeesGridView_CellClick!;
         newUserBtn.Click += BtnAddUser_Click!;
+        editUserBtn.Click += BtnEditUser_Click!;
+        logoutMenuItem.Click += (_, _) =>
+        {
+            SessionManager.CurrentUser = null;
+            var loginForm = new LoginForm();
+            loginForm.Show();
+            Hide();
+        };
+        exitMenuItem.Click += (_, _) => Application.Exit();
     }
 
     private async void MainForm_Load(object sender, EventArgs e)
@@ -96,13 +107,49 @@ public partial class MainForm : Form
 
     private async void BtnAddUser_Click(object sender, EventArgs e)
     {
-        var createForm = new CreateUserForm();
-        if (createForm.ShowDialog() == DialogResult.OK)
+        try
         {
-            var newUser = createForm.CreatedUser;
-            await _userService.CreateUser(newUser!);
-            var users = await _userService.GetUsers();
-            FillUsersDataGrid(users);
+            var createForm = new CreateUserForm();
+            if (createForm.ShowDialog() == DialogResult.OK)
+            {
+                var newUser = createForm.CreatedUser;
+                await _userService.CreateUser(newUser!);
+                MessageBox.Show("Usuario modificado con éxito", "Éxito",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var users = await _userService.GetUsers();
+                FillUsersDataGrid(users);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al crear el usuario: {ex.Message}", "Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private async void BtnEditUser_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (usersGridView.CurrentRow == null) return;
+            var userId = (long)usersGridView.CurrentRow.Cells["Id"].Value;
+            var user = await _userService.GetUserById(userId);
+
+            var editForm = new EditUserForm(user);
+            if (editForm.ShowDialog() == DialogResult.OK)
+            {
+                var editedUser = editForm.EditedUser;
+                await _userService.UpdateUser(userId, editedUser);
+                MessageBox.Show("Usuario modificado con éxito", "Éxito",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var users = await _userService.GetUsers();
+                FillUsersDataGrid(users);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al editar el usuario: {ex.Message}", "Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }

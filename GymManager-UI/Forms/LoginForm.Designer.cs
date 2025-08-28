@@ -37,6 +37,7 @@ partial class LoginForm
         loginLabel = new System.Windows.Forms.Label();
         pwdLabel = new System.Windows.Forms.Label();
         emailLabel = new System.Windows.Forms.Label();
+        btnShowPassword = new System.Windows.Forms.Button();
         SuspendLayout();
         // 
         // _txtUsername
@@ -50,9 +51,9 @@ partial class LoginForm
         // 
         _txtPassword.Location = new System.Drawing.Point(258, 284);
         _txtPassword.Name = "_txtPassword";
-        _txtPassword.PasswordChar = '*';
         _txtPassword.Size = new System.Drawing.Size(253, 23);
         _txtPassword.TabIndex = 1;
+        _txtPassword.UseSystemPasswordChar = true;
         // 
         // loginBtn
         // 
@@ -95,11 +96,21 @@ partial class LoginForm
         emailLabel.TabIndex = 5;
         emailLabel.Text = "Email";
         // 
+        // btnShowPassword
+        // 
+        btnShowPassword.Location = new System.Drawing.Point(488, 284);
+        btnShowPassword.Name = "btnShowPassword";
+        btnShowPassword.Size = new System.Drawing.Size(23, 23);
+        btnShowPassword.TabIndex = 6;
+        btnShowPassword.Text = "👁️";
+        btnShowPassword.UseVisualStyleBackColor = true;
+        // 
         // LoginForm
         // 
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         ClientSize = new System.Drawing.Size(800, 450);
+        Controls.Add(btnShowPassword);
         Controls.Add(emailLabel);
         Controls.Add(pwdLabel);
         Controls.Add(loginLabel);
@@ -110,6 +121,8 @@ partial class LoginForm
         ResumeLayout(false);
         PerformLayout();
     }
+
+    private System.Windows.Forms.Button btnShowPassword;
 
     private System.Windows.Forms.Label pwdLabel;
 
