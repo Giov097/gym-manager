@@ -10,9 +10,24 @@ public class PaymentMapper : IMapper<Payment, long>
 
     public Task<Payment> Create(Payment obj)
     {
-        var paymentMethod = typeof(Payment) == typeof(CardPayment) ? "Card" : "Cash";
+        var paymentMethod = obj.GetType() == typeof(CardPayment) ? "Card" : "Cash";
+        var cardLast4 = obj is CardPayment card ? card.LastFourDigits.ToString() : "NULL";
+        var cardBrand = obj is CardPayment card2 ? card2.Brand : "NULL";
+        var receiptNumber = obj is CashPayment cash ? cash.ReceiptNumber : "NULL";
         var query =
-            $"INSERT INTO payments (fee_id, payment_date, amount, payment_method, status) VALUES ('{obj.FeeId}','{obj.PaymentDate:yyyy-MM-dd}', {obj.Amount}, '{paymentMethod}', '{obj.Status}'); SELECT SCOPE_IDENTITY();";
+            $"""
+             INSERT INTO payments (fee_id, payment_date, amount, payment_method, status, card_last4, card_brand, receipt_number) 
+             VALUES (
+                     '{obj.FeeId}',
+                     '{obj.PaymentDate:yyyy-MM-dd}',
+                     {obj.Amount},
+                     '{paymentMethod}',
+                     '{obj.Status}',
+                     '{cardLast4}',
+                     '{cardBrand}',
+                     '{receiptNumber}');
+             SELECT SCOPE_IDENTITY();
+             """;
         return _dataAccess.Write(query)
             .ContinueWith(newId =>
             {
@@ -57,10 +72,25 @@ public class PaymentMapper : IMapper<Payment, long>
 
     public Task<bool> Update(Payment obj)
     {
+        var paymentMethod = obj.GetType() == typeof(CardPayment) ? "Card" : "Cash";
+        var cardLast4 = obj is CardPayment card ? card.LastFourDigits.ToString() : null;
+        var cardBrand = obj is CardPayment card2 ? card2.Brand : null;
+        var receiptNumber = obj is CashPayment cash ? cash.ReceiptNumber : null;
+
         var query =
-            $"UPDATE payments SET payment_date = '{obj.PaymentDate}', amount = {obj.Amount}, status = '{obj.Status}' WHERE id = {obj.Id};";
+            $"""
+             UPDATE payments
+             SET payment_date = '{obj.PaymentDate:yyyy-MM-dd}',
+                 amount = {obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)},
+                 status = '{obj.Status}',
+                 payment_method = '{paymentMethod}',
+                 card_last4 = '{cardLast4}',
+                 card_brand = '{cardBrand}',
+                 receipt_number = '{receiptNumber}'
+             WHERE id = {obj.Id};
+             """;
         return _dataAccess.Write(query)
-            .ContinueWith(result => result.Result != null);
+            .ContinueWith(result => result.Status == TaskStatus.RanToCompletion);
     }
 
     public Task<bool> Delete(long id)
@@ -82,9 +112,9 @@ public class PaymentMapper : IMapper<Payment, long>
                 Amount = (decimal)row["amount"],
                 Status = (string)row["status"],
                 Brand =
-                    row.Table.Columns.Contains("brand") ? (string)row["brand"] : string.Empty,
-                LastFourDigits = row.Table.Columns.Contains("last_four_digits")
-                    ? (int)row["last_four_digits"]
+                    row["card_brand"] != DBNull.Value ? (string)row["card_brand"] : string.Empty,
+                LastFourDigits = row["card_last4"] != DBNull.Value
+                    ? int.Parse((string)row["card_last4"])
                     : 0
             },
             "Cash" => new CashPayment
@@ -93,7 +123,7 @@ public class PaymentMapper : IMapper<Payment, long>
                 PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
                 Amount = (decimal)row["amount"],
                 Status = (string)row["status"],
-                ReceiptNumber = row.Table.Columns.Contains("receipt_number")
+                ReceiptNumber = row["receipt_number"] != DBNull.Value
                     ? (string)row["receipt_number"]
                     : string.Empty
             },

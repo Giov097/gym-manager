@@ -6,6 +6,20 @@ namespace GymManager_MPP;
 
 public class FeeMapper : IMapper<Fee, long>
 {
+    private const string FeeId = "fee_id";
+    private const string PaymentId = "payment_id";
+    private const string Status = "status";
+    private const string PaymentDate = "payment_date";
+    private const string PaymentMethod = "payment_method";
+    private const string PaymentAmount = "payment_amount";
+    private const string CardBrand = "card_brand";
+    private const string CardLast4 = "card_last4";
+    private const string ReceiptNumber = "receipt_number";
+    private const string StartDate = "start_date";
+    private const string EndDate = "end_date";
+    private const string FeeAmount = "fee_amount";
+    private const string UserId = "user_id";
+
     private readonly IDataAccess _dataAccess = new DataAccess();
 
     public Task<Fee> Create(Fee obj)
@@ -34,7 +48,10 @@ public class FeeMapper : IMapper<Fee, long>
              	p.amount as 'payment_amount',
              	p.payment_date,
              	p.payment_method,
-             	p.status 
+             	p.status,
+             	p.card_last4,
+             	p.card_brand,
+             	p.receipt_number
              FROM
              	fees f
              FULL OUTER JOIN payments p ON
@@ -68,7 +85,10 @@ public class FeeMapper : IMapper<Fee, long>
                              	p.amount as 'payment_amount',
                              	p.payment_date,
                              	p.payment_method,
-                             	p.status 
+                             	p.status,
+                             	p.card_last4,
+                                p.card_brand,
+                                p.receipt_number
                              FROM
                              	fees f
                              FULL OUTER JOIN payments p ON
@@ -92,9 +112,16 @@ public class FeeMapper : IMapper<Fee, long>
     public Task<bool> Update(Fee obj)
     {
         var query =
-            $"UPDATE fees SET amount = {obj.Amount}, start_date = '{obj.StartDate}', end_date = '{obj.EndDate}', user_id = {obj.Payment.Id} WHERE id = {obj.Id};";
+            $"""
+             UPDATE fees
+             SET amount = {obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)},
+                 start_date = '{obj.StartDate:yyyy-MM-dd}',
+                 end_date = '{obj.EndDate:yyyy-MM-dd}',
+                 user_id = {obj.UserId}
+             WHERE id = {obj.Id};
+             """;
         return _dataAccess.Write(query)
-            .ContinueWith(result => result.Result != null);
+            .ContinueWith(result => result.Status == TaskStatus.RanToCompletion);
     }
 
     public Task<bool> Delete(long id)
@@ -108,33 +135,68 @@ public class FeeMapper : IMapper<Fee, long>
     {
         return new Fee
         {
-            Id = (long)row["fee_id"],
-            StartDate = DateOnly.FromDateTime((DateTime)row["start_date"]),
-            EndDate = DateOnly.FromDateTime((DateTime)row["end_date"]),
-            Amount = (decimal)row["fee_amount"],
-            UserId = (long)row["user_id"],
-            Payment = (row["payment_id"] == DBNull.Value
+            Id = (long)row[FeeId],
+            StartDate = DateOnly.FromDateTime((DateTime)row[StartDate]),
+            EndDate = DateOnly.FromDateTime((DateTime)row[EndDate]),
+            Amount = (decimal)row[FeeAmount],
+            UserId = (long)row[UserId],
+            Payment = (row[PaymentId] == DBNull.Value
                 ? null
                 : BuildPayment(row))!
         };
     }
 
     private static Payment BuildPayment(DataRow row)
+    {
+        return row[PaymentMethod].ToString() switch
         {
-            return new Payment
+            "Card" => new CardPayment
             {
-                Id = (long)row["payment_id"],
-                FeeId = row["fee_id"] != DBNull.Value ? (long)row["fee_id"] : 0,
-                PaymentDate = row["payment_date"] != DBNull.Value
-                    ? DateOnly.FromDateTime((DateTime)row["payment_date"])
-                    : default,
-                Amount = row["payment_amount"] != DBNull.Value
-                    ? (decimal)row["payment_amount"]
-                    : 0,
-                Status = row["status"] != DBNull.Value
-                    ? (string)row["status"]
+                Id = (long)row[PaymentId],
+                FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
+                PaymentDate =
+                    row[PaymentDate] != DBNull.Value
+                        ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
+                        : default,
+                Amount =
+                    row[PaymentAmount] != DBNull.Value ? (decimal)row[PaymentAmount] : 0,
+                Status = row[Status] != DBNull.Value ? (string)row[Status] : string.Empty,
+                Brand =
+                    row[CardBrand] != DBNull.Value
+                        ? (string)row[CardBrand]
+                        : string.Empty,
+                LastFourDigits = row[CardLast4] != DBNull.Value
+                    ? int.Parse((string)row[CardLast4])
+                    : 0
+            },
+            "Cash" => new CashPayment
+            {
+                Id = (long)row[PaymentId],
+                FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
+                PaymentDate =
+                    row[PaymentDate] != DBNull.Value
+                        ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
+                        : default,
+                Amount =
+                    row[PaymentAmount] != DBNull.Value ? (decimal)row[PaymentAmount] : 0,
+                Status = row[Status] != DBNull.Value ? (string)row[Status] : string.Empty,
+                ReceiptNumber = row[ReceiptNumber] != DBNull.Value
+                    ? (string)row[ReceiptNumber]
                     : string.Empty
-            };
-        }
-
+            },
+            _ => new Payment
+            {
+                Id = (long)row[PaymentId],
+                FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
+                PaymentDate =
+                    row[PaymentDate] != DBNull.Value
+                        ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
+                        : default,
+                Amount = row[PaymentAmount] != DBNull.Value
+                    ? (decimal)row[PaymentAmount]
+                    : 0,
+                Status = row[Status] != DBNull.Value ? (string)row[Status] : string.Empty
+            }
+        };
+    }
 }

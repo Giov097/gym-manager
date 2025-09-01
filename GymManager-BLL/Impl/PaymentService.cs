@@ -30,17 +30,34 @@ public class PaymentService : IPaymentService
     {
         return _mapper.GetById(paymentId).ContinueWith(task =>
         {
-            if (task.Result == null)
+            var taskResult = task.Result;
+            if (taskResult == null)
             {
                 throw new PaymentNotFoundException();
             }
 
-            task.Result.Amount = payment.Amount;
-            task.Result.Status = payment.Status;
-            return _mapper.Update(task.Result)
+            taskResult.Amount = payment.Amount;
+            taskResult.Status = payment.Status;
+            taskResult.PaymentDate = payment.PaymentDate;
+            switch (taskResult)
+            {
+                case CashPayment cash when payment is CashPayment updatedCash:
+                    cash.ReceiptNumber = updatedCash.ReceiptNumber;
+                    taskResult = cash;
+                    break;
+                case CardPayment card when payment is CardPayment updatedCard:
+                    card.Brand = updatedCard.Brand;
+                    card.LastFourDigits = updatedCard.LastFourDigits;
+                    taskResult = card;
+                    break;
+                default:
+                    throw new ProcessingException("No se puede cambiar el tipo de pago");
+            }
+
+            return _mapper.Update(taskResult)
                 .ContinueWith(success =>
                     success.Result
-                        ? task.Result
+                        ? taskResult
                         : throw new ProcessingException("No se pudo actualizar el pago")).Result;
         });
     }

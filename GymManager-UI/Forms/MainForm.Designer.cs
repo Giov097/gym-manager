@@ -32,7 +32,7 @@ partial class MainForm
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
-        tabControl1 = new System.Windows.Forms.TabControl();
+        myDataTabControl = new System.Windows.Forms.TabControl();
         tabPage1 = new System.Windows.Forms.TabPage();
         usersGridView = new System.Windows.Forms.DataGridView();
         deleteUsrBtn = new System.Windows.Forms.Button();
@@ -47,7 +47,7 @@ partial class MainForm
         greetingMenu = new System.Windows.Forms.ContextMenuStrip(components);
         logoutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-        tabControl1.SuspendLayout();
+        myDataTabControl.SuspendLayout();
         tabPage1.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)usersGridView).BeginInit();
         tabPage2.SuspendLayout();
@@ -57,15 +57,15 @@ partial class MainForm
         //
         // tabControl1
         //
-        tabControl1.Controls.Add(tabPage1);
-        tabControl1.Controls.Add(tabPage2);
-        tabControl1.Controls.Add(tabPage3);
-        tabControl1.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-        tabControl1.Location = new System.Drawing.Point(12, 12);
-        tabControl1.Name = "tabControl1";
-        tabControl1.SelectedIndex = 0;
-        tabControl1.Size = new System.Drawing.Size(776, 426);
-        tabControl1.TabIndex = 0;
+        myDataTabControl.Controls.Add(tabPage1);
+        myDataTabControl.Controls.Add(tabPage2);
+        myDataTabControl.Controls.Add(tabPage3);
+        myDataTabControl.ImeMode = System.Windows.Forms.ImeMode.NoControl;
+        myDataTabControl.Location = new System.Drawing.Point(12, 12);
+        myDataTabControl.Name = "myDataTabControl";
+        myDataTabControl.SelectedIndex = 0;
+        myDataTabControl.Size = new System.Drawing.Size(776, 426);
+        myDataTabControl.TabIndex = 0;
         //
         // tabPage1
         //
@@ -203,10 +203,10 @@ partial class MainForm
         BackColor = System.Drawing.SystemColors.Control;
         ClientSize = new System.Drawing.Size(800, 450);
         Controls.Add(greetingLbl);
-        Controls.Add(tabControl1);
+        Controls.Add(myDataTabControl);
         Location = new System.Drawing.Point(15, 15);
         Text = "Gym Manager";
-        tabControl1.ResumeLayout(false);
+        myDataTabControl.ResumeLayout(false);
         tabPage1.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)usersGridView).EndInit();
         tabPage2.ResumeLayout(false);
@@ -228,7 +228,7 @@ partial class MainForm
     private System.Windows.Forms.Button editFeeBtn;
     private System.Windows.Forms.Button registerFeeBtn;
 
-    private System.Windows.Forms.TabControl tabControl1;
+    private System.Windows.Forms.TabControl myDataTabControl;
     private System.Windows.Forms.TabPage tabPage1;
     private System.Windows.Forms.TabPage tabPage2;
     private System.Windows.Forms.TabPage tabPage3;

@@ -23,15 +23,14 @@ public partial class LoginForm : Form
 
     private async void btnLogin_Click(object sender, EventArgs e)
     {
-        var username = _txtUsername.Text;
-        var password = _txtPassword.Text;
-
         try
         {
+            var username = _txtUsername.Text;
+            var password = _txtPassword.Text;
             var user = await _userService.Login(username, password);
             MessageBox.Show("¡Login exitoso!");
             SessionManager.CurrentUser = user;
-            var mainForm = new MainForm(new UserService(), new FeeService());
+            var mainForm = new MainForm(new UserService(), new FeeService(), new PaymentService());
             mainForm.FormClosed += (_, _) => Close();
             mainForm.Show();
             Hide();

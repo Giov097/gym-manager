@@ -7,11 +7,16 @@ public partial class MainForm : Form
 {
     private readonly IUserService _userService;
     private readonly IFeeService _feeService;
+    private readonly IPaymentService _paymentService;
+    private const string? SuccessCaption = "Éxito";
+    private const string? ErrorCaption = "Error";
 
-    public MainForm(IUserService userService, IFeeService feeService)
+    public MainForm(IUserService userService, IFeeService feeService,
+        IPaymentService paymentService)
     {
         _userService = userService;
         _feeService = feeService;
+        _paymentService = paymentService;
         InitializeComponent();
         greetingLbl.Enabled = true;
         greetingLbl.Visible = true;
@@ -29,15 +34,24 @@ public partial class MainForm : Form
             Hide();
         };
         exitMenuItem.Click += (_, _) => Application.Exit();
+        registerFeeBtn.Click += RegisterFeeBtn_Click!;
+        editFeeBtn.Click += EditFeeBtn_Click!;
     }
 
     private async void MainForm_Load(object sender, EventArgs e)
     {
-        var users = await _userService.GetUsers();
-        FillUsersDataGrid(users);
-
-        var fees = await _feeService.GetFees(DateOnly.MinValue, DateOnly.MaxValue, 0);
-        FillFeesDataGrid(fees);
+        try
+        {
+            var users = await _userService.GetUsers();
+            FillUsersDataGrid(users);
+            var fees = await _feeService.GetFees(DateOnly.MinValue, DateOnly.MaxValue, 0);
+            FillFeesDataGrid(fees);
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show("Error al cargar datos: " + exception.Message, ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     private void FillFeesDataGrid(List<Fee> fees)
@@ -94,14 +108,22 @@ public partial class MainForm : Form
 
     private async void FeesGridView_CellClick(object sender, DataGridViewCellEventArgs e)
     {
-        if (e is { RowIndex: >= 0, ColumnIndex: >= 0 } &&
-            feesGridView.Columns[e.ColumnIndex].Name == "ViewUser")
+        try
         {
-            var userId = (long)feesGridView.Rows[e.RowIndex].Cells["UserId"].Value;
-            var user = await _userService.GetUserById(userId);
+            if (e is { RowIndex: >= 0, ColumnIndex: >= 0 } &&
+                feesGridView.Columns[e.ColumnIndex].Name == "ViewUser")
+            {
+                var userId = (long)feesGridView.Rows[e.RowIndex].Cells["UserId"].Value;
+                var user = await _userService.GetUserById(userId);
 
-            var userForm = new UserDetailsForm(user);
-            userForm.ShowDialog();
+                var userForm = new UserDetailsForm(user);
+                userForm.ShowDialog();
+            }
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show("Error al cargar datos del usuario: " + exception.Message, ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -114,7 +136,7 @@ public partial class MainForm : Form
             {
                 var newUser = createForm.CreatedUser;
                 await _userService.CreateUser(newUser!);
-                MessageBox.Show("Usuario modificado con éxito", "Éxito",
+                MessageBox.Show("Usuario modificado con éxito", SuccessCaption,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 var users = await _userService.GetUsers();
                 FillUsersDataGrid(users);
@@ -122,7 +144,7 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al crear el usuario: {ex.Message}", "Error",
+            MessageBox.Show($"Error al crear el usuario: {ex.Message}", ErrorCaption,
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
@@ -140,7 +162,7 @@ public partial class MainForm : Form
             {
                 var editedUser = editForm.EditedUser;
                 await _userService.UpdateUser(userId, editedUser);
-                MessageBox.Show("Usuario modificado con éxito", "Éxito",
+                MessageBox.Show("Usuario modificado con éxito", SuccessCaption,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 var users = await _userService.GetUsers();
                 FillUsersDataGrid(users);
@@ -148,8 +170,53 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Error al editar el usuario: {ex.Message}", "Error",
+            MessageBox.Show($"Error al editar el usuario: {ex.Message}", ErrorCaption,
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
+
+    private async void RegisterFeeBtn_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            var registerForm = new RegisterFeeForm(_userService, _feeService, _paymentService);
+            if (registerForm.ShowDialog() == DialogResult.OK)
+            {
+                MessageBox.Show("Cuota registrada con éxito", SuccessCaption,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var fees = await _feeService.GetFees(DateOnly.MinValue, DateOnly.MaxValue, 0);
+                FillFeesDataGrid(fees);
+            }
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show("Error al registrar la cuota: " + exception.Message, ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private async void EditFeeBtn_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (feesGridView.CurrentRow == null) return;
+            var feeId = (long)feesGridView.CurrentRow.Cells["Id"].Value;
+            var fee = await _feeService.GetFeeById(feeId);
+
+            var editForm = new EditFeeForm(_userService, _feeService, _paymentService, fee);
+            if (editForm.ShowDialog() == DialogResult.OK)
+            {
+                MessageBox.Show("Cuota modificada con éxito", SuccessCaption,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var fees = await _feeService.GetFees(DateOnly.MinValue, DateOnly.MaxValue, 0);
+                FillFeesDataGrid(fees);
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al editar la cuota: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
 }

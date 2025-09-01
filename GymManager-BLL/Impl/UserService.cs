@@ -4,7 +4,7 @@ using GymManager_BE;
 using GymManager_BLL.Exceptions;
 using GymManager_MPP;
 
-namespace GymManager_BLL;
+namespace GymManager_BLL.Impl;
 
 public class UserService : IUserService
 {
@@ -60,12 +60,16 @@ public class UserService : IUserService
             existingUser.Result.Email = user.Email;
             existingUser.Result.FirstName = user.FirstName;
             existingUser.Result.LastName = user.LastName;
-            existingUser.Result.Password = EncryptString(user.Password);
+            if (!user.Password.Equals(existingUser.Result.Password))
+            {
+                existingUser.Result.Password = EncryptString(user.Password);
+            }
+
             return _mapper.Update(existingUser.Result);
         });
     }
 
-    private string EncryptString(string plainText)
+    private static string EncryptString(string plainText)
     {
         var iv = new byte[16];
         byte[] array;
@@ -92,7 +96,7 @@ public class UserService : IUserService
     }
 
     // No se usa, pero lo dejé como referencia
-    private string DecryptString(string cipherText)
+    private static string DecryptString(string cipherText)
     {
         var iv = new byte[16];
         var buffer = Convert.FromBase64String(cipherText);
