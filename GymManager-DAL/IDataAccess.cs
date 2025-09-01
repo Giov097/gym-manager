@@ -26,4 +26,13 @@ public interface IDataAccess
     /// A task that represents the asynchronous operation.
     /// </returns>
     Task<object?> Write(string query);
+
+    /// <summary>
+    /// Tests the connection to the database.
+    /// </summary>
+    /// <returns>
+    /// A task that represents the asynchronous operation.
+    /// The task result contains a boolean indicating whether the connection test was successful.
+    /// </returns>
+    Task<bool> TestConnectionAsync();
 }

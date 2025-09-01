@@ -8,8 +8,12 @@ public class PaymentService : IPaymentService
 {
     private readonly PaymentMapper _mapper = new();
 
-    //TODO: implementar filtros
-    public Task<List<Payment>> GetPayments(DateOnly from, DateOnly to, long userId)
+    public Task<List<Payment>> GetPayments()
+    {
+        return _mapper.GetAll();
+    }
+
+    public Task<List<Payment>> SearchPayments(DateOnly from, DateOnly to, long userId)
     {
         return _mapper.GetAll();
     }

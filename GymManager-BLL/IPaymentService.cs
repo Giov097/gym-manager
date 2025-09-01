@@ -9,6 +9,12 @@ namespace GymManager_BLL;
 public interface IPaymentService
 {
     /// <summary>
+    ///  Retrieves a list of all the payments.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation, containing the payments list</returns>
+    Task<List<Payment>> GetPayments();
+
+    /// <summary>
     ///  Retrieves a list of payments within a specified date range for a given user.
     /// This method allows you to filter payments based on a date range and user ID.
     /// </summary>
@@ -16,7 +22,7 @@ public interface IPaymentService
     /// <param name="to"></param>
     /// <param name="userId"></param>
     /// <returns>A task that represents the asynchronous operation, containing the payments list</returns>
-    Task<List<Payment>> GetPayments(DateOnly from, DateOnly to, long userId);
+    Task<List<Payment>> SearchPayments(DateOnly from, DateOnly to, long userId);
 
     /// <summary>
     ///  Retrieves a payment by its unique identifier.

@@ -36,6 +36,7 @@ public partial class MainForm : Form
         exitMenuItem.Click += (_, _) => Application.Exit();
         registerFeeBtn.Click += RegisterFeeBtn_Click!;
         editFeeBtn.Click += EditFeeBtn_Click!;
+        myDataTabControl.SelectedIndexChanged += MyDataTabControl_SelectedIndexChanged!;
     }
 
     private async void MainForm_Load(object sender, EventArgs e)
@@ -44,7 +45,7 @@ public partial class MainForm : Form
         {
             var users = await _userService.GetUsers();
             FillUsersDataGrid(users);
-            var fees = await _feeService.GetFees(DateOnly.MinValue, DateOnly.MaxValue, 0);
+            var fees = await _feeService.GetFees();
             FillFeesDataGrid(fees);
         }
         catch (Exception exception)
@@ -184,7 +185,7 @@ public partial class MainForm : Form
             {
                 MessageBox.Show("Cuota registrada con éxito", SuccessCaption,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
-                var fees = await _feeService.GetFees(DateOnly.MinValue, DateOnly.MaxValue, 0);
+                var fees = await _feeService.GetFees();
                 FillFeesDataGrid(fees);
             }
         }
@@ -208,7 +209,7 @@ public partial class MainForm : Form
             {
                 MessageBox.Show("Cuota modificada con éxito", SuccessCaption,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
-                var fees = await _feeService.GetFees(DateOnly.MinValue, DateOnly.MaxValue, 0);
+                var fees = await _feeService.GetFees();
                 FillFeesDataGrid(fees);
             }
         }
@@ -219,4 +220,35 @@ public partial class MainForm : Form
         }
     }
 
+    private async void MyDataTabControl_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (myDataTabControl.SelectedTab == tabPage3)
+        {
+            var user = SessionManager.CurrentUser!;
+            nameTxt.Text = user.FirstName;
+            lastNameTxt.Text = user.LastName;
+            emailTxt.Text = user.Email;
+            rolesTxt.Text = string.Join(", ", user.UserRoles.Select(r => r.GetRoleName()));
+
+            // Cargar cuotas
+            var fees = await _feeService.SearchFees(DateOnly.MinValue, DateOnly.MaxValue, user.Id);
+            feesUserGridView.DataSource = fees.Select(f => new
+            {
+                De = f.StartDate,
+                Hasta = f.EndDate,
+                Monto = f.Amount,
+                Estado = f.Payment?.Status
+            }).ToList();
+
+            // Cargar pagos
+            var payments =
+                await _paymentService.SearchPayments(DateOnly.MinValue, DateOnly.MaxValue, user.Id);
+            paymentsUserGridView.DataSource = payments.Select(p => new
+            {
+                Fecha = p.PaymentDate,
+                Monto = p.Amount,
+                Estado = p.Status
+            }).ToList();
+        }
+    }
 }

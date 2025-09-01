@@ -43,32 +43,47 @@ partial class MainForm
         registerFeeBtn = new System.Windows.Forms.Button();
         feesGridView = new System.Windows.Forms.DataGridView();
         tabPage3 = new System.Windows.Forms.TabPage();
+        nameLbl = new System.Windows.Forms.Label();
+        nameTxt = new System.Windows.Forms.TextBox();
+        lastNameLbl = new System.Windows.Forms.Label();
+        lastNameTxt = new System.Windows.Forms.TextBox();
+        emailLbl = new System.Windows.Forms.Label();
+        emailTxt = new System.Windows.Forms.TextBox();
+        rolesLbl = new System.Windows.Forms.Label();
+        rolesTxt = new System.Windows.Forms.TextBox();
+        feesUserGridView = new System.Windows.Forms.DataGridView();
+        paymentsUserGridView = new System.Windows.Forms.DataGridView();
         greetingLbl = new System.Windows.Forms.Label();
         greetingMenu = new System.Windows.Forms.ContextMenuStrip(components);
         logoutMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+        label1 = new System.Windows.Forms.Label();
+        label2 = new System.Windows.Forms.Label();
         myDataTabControl.SuspendLayout();
         tabPage1.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)usersGridView).BeginInit();
         tabPage2.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)feesGridView).BeginInit();
+        tabPage3.SuspendLayout();
+        ((System.ComponentModel.ISupportInitialize)feesUserGridView).BeginInit();
+        ((System.ComponentModel.ISupportInitialize)paymentsUserGridView).BeginInit();
         greetingMenu.SuspendLayout();
         SuspendLayout();
-        //
-        // tabControl1
-        //
+        // 
+        // myDataTabControl
+        // 
         myDataTabControl.Controls.Add(tabPage1);
         myDataTabControl.Controls.Add(tabPage2);
         myDataTabControl.Controls.Add(tabPage3);
         myDataTabControl.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-        myDataTabControl.Location = new System.Drawing.Point(12, 12);
+        myDataTabControl.Location = new System.Drawing.Point(12, 13);
         myDataTabControl.Name = "myDataTabControl";
         myDataTabControl.SelectedIndex = 0;
         myDataTabControl.Size = new System.Drawing.Size(776, 426);
         myDataTabControl.TabIndex = 0;
-        //
+        // 
         // tabPage1
-        //
+        // 
         tabPage1.Controls.Add(usersGridView);
         tabPage1.Controls.Add(deleteUsrBtn);
         tabPage1.Controls.Add(editUserBtn);
@@ -80,16 +95,16 @@ partial class MainForm
         tabPage1.TabIndex = 0;
         tabPage1.Text = "Usuarios";
         tabPage1.UseVisualStyleBackColor = true;
-        //
+        // 
         // usersGridView
-        //
+        // 
         usersGridView.Location = new System.Drawing.Point(0, 0);
         usersGridView.Name = "usersGridView";
         usersGridView.Size = new System.Drawing.Size(768, 363);
         usersGridView.TabIndex = 4;
-        //
+        // 
         // deleteUsrBtn
-        //
+        // 
         deleteUsrBtn.Cursor = System.Windows.Forms.Cursors.Hand;
         deleteUsrBtn.Location = new System.Drawing.Point(375, 369);
         deleteUsrBtn.Name = "deleteUsrBtn";
@@ -97,9 +112,9 @@ partial class MainForm
         deleteUsrBtn.TabIndex = 3;
         deleteUsrBtn.Text = "Borrar usuario";
         deleteUsrBtn.UseVisualStyleBackColor = true;
-        //
+        // 
         // editUserBtn
-        //
+        // 
         editUserBtn.Cursor = System.Windows.Forms.Cursors.Hand;
         editUserBtn.Location = new System.Drawing.Point(507, 369);
         editUserBtn.Name = "editUserBtn";
@@ -107,9 +122,9 @@ partial class MainForm
         editUserBtn.TabIndex = 2;
         editUserBtn.Text = "Editar usuario";
         editUserBtn.UseVisualStyleBackColor = true;
-        //
+        // 
         // newUserBtn
-        //
+        // 
         newUserBtn.Cursor = System.Windows.Forms.Cursors.Hand;
         newUserBtn.Location = new System.Drawing.Point(639, 369);
         newUserBtn.Name = "newUserBtn";
@@ -117,9 +132,9 @@ partial class MainForm
         newUserBtn.TabIndex = 1;
         newUserBtn.Text = "Nuevo usuario";
         newUserBtn.UseVisualStyleBackColor = true;
-        //
+        // 
         // tabPage2
-        //
+        // 
         tabPage2.Controls.Add(editFeeBtn);
         tabPage2.Controls.Add(registerFeeBtn);
         tabPage2.Controls.Add(feesGridView);
@@ -130,9 +145,9 @@ partial class MainForm
         tabPage2.TabIndex = 1;
         tabPage2.Text = "Cuotas";
         tabPage2.UseVisualStyleBackColor = true;
-        //
+        // 
         // editFeeBtn
-        //
+        // 
         editFeeBtn.Cursor = System.Windows.Forms.Cursors.Hand;
         editFeeBtn.Location = new System.Drawing.Point(504, 369);
         editFeeBtn.Name = "editFeeBtn";
@@ -140,9 +155,9 @@ partial class MainForm
         editFeeBtn.TabIndex = 7;
         editFeeBtn.Text = "Editar cuota";
         editFeeBtn.UseVisualStyleBackColor = true;
-        //
+        // 
         // registerFeeBtn
-        //
+        // 
         registerFeeBtn.Cursor = System.Windows.Forms.Cursors.Hand;
         registerFeeBtn.Location = new System.Drawing.Point(636, 369);
         registerFeeBtn.Name = "registerFeeBtn";
@@ -150,16 +165,28 @@ partial class MainForm
         registerFeeBtn.TabIndex = 6;
         registerFeeBtn.Text = "Registrar cuota";
         registerFeeBtn.UseVisualStyleBackColor = true;
-        //
+        // 
         // feesGridView
-        //
+        // 
         feesGridView.Location = new System.Drawing.Point(0, 0);
         feesGridView.Name = "feesGridView";
         feesGridView.Size = new System.Drawing.Size(768, 363);
         feesGridView.TabIndex = 5;
-        //
+        // 
         // tabPage3
-        //
+        // 
+        tabPage3.Controls.Add(label2);
+        tabPage3.Controls.Add(label1);
+        tabPage3.Controls.Add(nameLbl);
+        tabPage3.Controls.Add(nameTxt);
+        tabPage3.Controls.Add(lastNameLbl);
+        tabPage3.Controls.Add(lastNameTxt);
+        tabPage3.Controls.Add(emailLbl);
+        tabPage3.Controls.Add(emailTxt);
+        tabPage3.Controls.Add(rolesLbl);
+        tabPage3.Controls.Add(rolesTxt);
+        tabPage3.Controls.Add(feesUserGridView);
+        tabPage3.Controls.Add(paymentsUserGridView);
         tabPage3.Location = new System.Drawing.Point(4, 24);
         tabPage3.Name = "tabPage3";
         tabPage3.Padding = new System.Windows.Forms.Padding(3);
@@ -167,9 +194,89 @@ partial class MainForm
         tabPage3.TabIndex = 2;
         tabPage3.Text = "Mis datos";
         tabPage3.UseVisualStyleBackColor = true;
-        //
+        // 
+        // nameLbl
+        // 
+        nameLbl.Location = new System.Drawing.Point(20, 20);
+        nameLbl.Name = "nameLbl";
+        nameLbl.Size = new System.Drawing.Size(62, 23);
+        nameLbl.TabIndex = 0;
+        nameLbl.Text = "Nombre:";
+        // 
+        // nameTxt
+        // 
+        nameTxt.Location = new System.Drawing.Point(260, 17);
+        nameTxt.Name = "nameTxt";
+        nameTxt.ReadOnly = true;
+        nameTxt.Size = new System.Drawing.Size(200, 23);
+        nameTxt.TabIndex = 1;
+        // 
+        // lastNameLbl
+        // 
+        lastNameLbl.Location = new System.Drawing.Point(20, 60);
+        lastNameLbl.Name = "lastNameLbl";
+        lastNameLbl.Size = new System.Drawing.Size(62, 23);
+        lastNameLbl.TabIndex = 2;
+        lastNameLbl.Text = "Apellido:";
+        // 
+        // lastNameTxt
+        // 
+        lastNameTxt.Location = new System.Drawing.Point(260, 57);
+        lastNameTxt.Name = "lastNameTxt";
+        lastNameTxt.ReadOnly = true;
+        lastNameTxt.Size = new System.Drawing.Size(200, 23);
+        lastNameTxt.TabIndex = 3;
+        // 
+        // emailLbl
+        // 
+        emailLbl.Location = new System.Drawing.Point(20, 100);
+        emailLbl.Name = "emailLbl";
+        emailLbl.Size = new System.Drawing.Size(62, 23);
+        emailLbl.TabIndex = 4;
+        emailLbl.Text = "Correo:";
+        // 
+        // emailTxt
+        // 
+        emailTxt.Location = new System.Drawing.Point(260, 97);
+        emailTxt.Name = "emailTxt";
+        emailTxt.ReadOnly = true;
+        emailTxt.Size = new System.Drawing.Size(200, 23);
+        emailTxt.TabIndex = 5;
+        // 
+        // rolesLbl
+        // 
+        rolesLbl.Location = new System.Drawing.Point(20, 140);
+        rolesLbl.Name = "rolesLbl";
+        rolesLbl.Size = new System.Drawing.Size(62, 23);
+        rolesLbl.TabIndex = 6;
+        rolesLbl.Text = "Roles:";
+        // 
+        // rolesTxt
+        // 
+        rolesTxt.Location = new System.Drawing.Point(260, 137);
+        rolesTxt.Name = "rolesTxt";
+        rolesTxt.ReadOnly = true;
+        rolesTxt.Size = new System.Drawing.Size(200, 23);
+        rolesTxt.TabIndex = 7;
+        // 
+        // feesUserGridView
+        // 
+        feesUserGridView.Location = new System.Drawing.Point(20, 210);
+        feesUserGridView.Name = "feesUserGridView";
+        feesUserGridView.ReadOnly = true;
+        feesUserGridView.Size = new System.Drawing.Size(350, 150);
+        feesUserGridView.TabIndex = 8;
+        // 
+        // paymentsUserGridView
+        // 
+        paymentsUserGridView.Location = new System.Drawing.Point(400, 210);
+        paymentsUserGridView.Name = "paymentsUserGridView";
+        paymentsUserGridView.ReadOnly = true;
+        paymentsUserGridView.Size = new System.Drawing.Size(350, 150);
+        paymentsUserGridView.TabIndex = 9;
+        // 
         // greetingLbl
-        //
+        // 
         greetingLbl.Cursor = System.Windows.Forms.Cursors.Hand;
         greetingLbl.Location = new System.Drawing.Point(681, 7);
         greetingLbl.Name = "greetingLbl";
@@ -177,27 +284,43 @@ partial class MainForm
         greetingLbl.TabIndex = 1;
         greetingLbl.Text = "GREETING";
         greetingLbl.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-        //
+        // 
         // greetingMenu
-        //
+        // 
         greetingMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { logoutMenuItem, exitMenuItem });
         greetingMenu.Name = "greetingMenu";
         greetingMenu.Size = new System.Drawing.Size(143, 48);
-        //
+        // 
         // logoutMenuItem
-        //
+        // 
         logoutMenuItem.Name = "logoutMenuItem";
         logoutMenuItem.Size = new System.Drawing.Size(142, 22);
         logoutMenuItem.Text = "Cerrar sesión";
-        //
+        // 
         // exitMenuItem
-        //
+        // 
         exitMenuItem.Name = "exitMenuItem";
         exitMenuItem.Size = new System.Drawing.Size(142, 22);
         exitMenuItem.Text = "Salir";
-        //
+        // 
+        // label1
+        // 
+        label1.Location = new System.Drawing.Point(20, 184);
+        label1.Name = "label1";
+        label1.Size = new System.Drawing.Size(100, 23);
+        label1.TabIndex = 10;
+        label1.Text = "Mis cuotas";
+        // 
+        // label2
+        // 
+        label2.Location = new System.Drawing.Point(400, 184);
+        label2.Name = "label2";
+        label2.Size = new System.Drawing.Size(100, 23);
+        label2.TabIndex = 11;
+        label2.Text = "Mis pagos";
+        // 
         // MainForm
-        //
+        // 
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         BackColor = System.Drawing.SystemColors.Control;
@@ -211,9 +334,16 @@ partial class MainForm
         ((System.ComponentModel.ISupportInitialize)usersGridView).EndInit();
         tabPage2.ResumeLayout(false);
         ((System.ComponentModel.ISupportInitialize)feesGridView).EndInit();
+        tabPage3.ResumeLayout(false);
+        tabPage3.PerformLayout();
+        ((System.ComponentModel.ISupportInitialize)feesUserGridView).EndInit();
+        ((System.ComponentModel.ISupportInitialize)paymentsUserGridView).EndInit();
         greetingMenu.ResumeLayout(false);
         ResumeLayout(false);
     }
+
+    private System.Windows.Forms.Label label1;
+    private System.Windows.Forms.Label label2;
 
     private System.Windows.Forms.Label greetingLbl;
     private System.Windows.Forms.ContextMenuStrip greetingMenu;
@@ -227,6 +357,17 @@ partial class MainForm
     private System.Windows.Forms.DataGridView feesGridView;
     private System.Windows.Forms.Button editFeeBtn;
     private System.Windows.Forms.Button registerFeeBtn;
+
+     private System.Windows.Forms.Label nameLbl;
+     private System.Windows.Forms.Label lastNameLbl;
+     private System.Windows.Forms.Label emailLbl;
+     private System.Windows.Forms.Label rolesLbl;
+     private System.Windows.Forms.TextBox nameTxt;
+     private System.Windows.Forms.TextBox lastNameTxt;
+     private System.Windows.Forms.TextBox emailTxt;
+     private System.Windows.Forms.TextBox rolesTxt;
+     private System.Windows.Forms.DataGridView feesUserGridView;
+     private System.Windows.Forms.DataGridView paymentsUserGridView;
 
     private System.Windows.Forms.TabControl myDataTabControl;
     private System.Windows.Forms.TabPage tabPage1;

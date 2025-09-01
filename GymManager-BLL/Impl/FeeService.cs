@@ -8,7 +8,12 @@ public class FeeService : IFeeService
 {
     private readonly FeeMapper _mapper = new();
 
-    public Task<List<Fee>> GetFees(DateOnly from, DateOnly to, long userId)
+    public Task<List<Fee>> GetFees()
+    {
+        return _mapper.GetAll();
+    }
+
+    public Task<List<Fee>> SearchFees(DateOnly from, DateOnly to, long userId)
     {
         return _mapper.GetAll();
     }
