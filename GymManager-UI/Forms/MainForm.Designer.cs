@@ -59,6 +59,11 @@ partial class MainForm
         exitMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         label1 = new System.Windows.Forms.Label();
         label2 = new System.Windows.Forms.Label();
+        tabPageReportes = new System.Windows.Forms.TabPage();
+        reportTypeComboBox = new System.Windows.Forms.ComboBox();
+        reportParamsPanel = new System.Windows.Forms.Panel();
+        btnGenerarReporte = new System.Windows.Forms.Button();
+        reportGridView = new System.Windows.Forms.DataGridView();
         myDataTabControl.SuspendLayout();
         tabPage1.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)usersGridView).BeginInit();
@@ -318,6 +323,41 @@ partial class MainForm
         label2.Size = new System.Drawing.Size(100, 23);
         label2.TabIndex = 11;
         label2.Text = "Mis pagos";
+        tabPageReportes.Text = "Reportes";
+        reportTypeComboBox.Location = new System.Drawing.Point(20, 20);
+        reportTypeComboBox.Size = new System.Drawing.Size(250, 23);
+        reportTypeComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        reportTypeComboBox.Items.AddRange(new object[]
+        {
+            "Recaudación mensual",
+            "Alumnos con más deuda",
+            "Pagos por método",
+            "Cuotas impagas",
+            "Historial de pagos de un alumno",
+            "Alumnos activos/inactivos",
+            "Recaudación por entrenador",
+            "Cuotas generadas vs. pagadas",
+            "Pagos por rango de fechas",
+            "Alumnos nuevos del mes"
+        });
+        reportTypeComboBox.SelectedIndex = 0;
+
+        reportParamsPanel.Location = new System.Drawing.Point(20, 60);
+        reportParamsPanel.Size = new System.Drawing.Size(400, 60);
+
+        btnGenerarReporte.Text = "Generar";
+        btnGenerarReporte.Location = new System.Drawing.Point(440, 60);
+        btnGenerarReporte.Size = new System.Drawing.Size(100, 30);
+
+        reportGridView.Location = new System.Drawing.Point(20, 130);
+        reportGridView.Size = new System.Drawing.Size(700, 250);
+        reportGridView.ReadOnly = true;
+
+        tabPageReportes.Controls.Add(reportTypeComboBox);
+        tabPageReportes.Controls.Add(reportParamsPanel);
+        tabPageReportes.Controls.Add(btnGenerarReporte);
+        tabPageReportes.Controls.Add(reportGridView);
+        myDataTabControl.Controls.Add(tabPageReportes);
         // 
         // MainForm
         // 
@@ -373,6 +413,12 @@ partial class MainForm
     private System.Windows.Forms.TabPage tabPage1;
     private System.Windows.Forms.TabPage tabPage2;
     private System.Windows.Forms.TabPage tabPage3;
+
+    private  System.Windows.Forms.TabPage tabPageReportes;
+    private  System.Windows.Forms.ComboBox reportTypeComboBox;
+    private System.Windows.Forms.Panel reportParamsPanel;
+    private System.Windows.Forms.Button btnGenerarReporte;
+    private System.Windows.Forms.DataGridView reportGridView;
 
     #endregion
 }

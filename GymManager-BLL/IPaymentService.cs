@@ -38,7 +38,7 @@ public interface IPaymentService
     /// </summary>
     /// <param name="payment">The payment object to be added.</param>
     /// <returns>A task that represents the asynchronous operation, containing the added payment.</returns>
-    /// <remarks>This method is used to create a new payment record in the system.</remarks
+    /// <remarks>This method is used to create a new payment record in the system.</remarks>
     Task<Payment> AddPayment(Payment payment);
 
     /// <summary>

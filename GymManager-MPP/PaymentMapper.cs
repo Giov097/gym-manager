@@ -136,4 +136,46 @@ public class PaymentMapper : IMapper<Payment, long>
             }
         };
     }
+
+    public Task<List<Payment>> Search(DateOnly from, DateOnly to, long userId)
+    {
+        if (from == null && to == null && userId == 0)
+        {
+            return GetAll();
+        }
+
+        var conditions = new List<string>();
+        if (from != null)
+        {
+            conditions.Add($"payment_date >= '{from:yyyy-MM-dd}'");
+        }
+
+        if (to != null)
+        {
+            conditions.Add($"payment_date <= '{to:yyyy-MM-dd}'");
+        }
+
+        if (userId != 0)
+        {
+            conditions.Add($"fee_id IN (SELECT id FROM fees WHERE user_id = {userId})");
+        }
+
+        var whereClause = conditions.Count > 0
+            ? "WHERE " + string.Join(" AND ", conditions)
+            : string.Empty;
+        var query = $"SELECT * FROM payments {whereClause};";
+        return _dataAccess.Read(query)
+            .ContinueWith(dataSet =>
+            {
+                var payments = new List<Payment>();
+                if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
+                {
+                    return payments;
+                }
+
+                payments.AddRange(from DataRow row in dataSet.Result.Tables[0].Rows
+                    select BuildPayment(row));
+                return payments;
+            });
+    }
 }

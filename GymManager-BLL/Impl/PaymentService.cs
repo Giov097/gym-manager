@@ -2,7 +2,7 @@ using GymManager_BE;
 using GymManager_BLL.Exceptions;
 using GymManager_MPP;
 
-namespace GymManager_BLL;
+namespace GymManager_BLL.Impl;
 
 public class PaymentService : IPaymentService
 {
@@ -15,7 +15,7 @@ public class PaymentService : IPaymentService
 
     public Task<List<Payment>> SearchPayments(DateOnly from, DateOnly to, long userId)
     {
-        return _mapper.GetAll();
+        return _mapper.Search(from, to, userId);
     }
 
     public Task<Payment> GetPaymentById(long paymentId)

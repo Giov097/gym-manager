@@ -37,6 +37,36 @@ public partial class MainForm : Form
         registerFeeBtn.Click += RegisterFeeBtn_Click!;
         editFeeBtn.Click += EditFeeBtn_Click!;
         myDataTabControl.SelectedIndexChanged += MyDataTabControl_SelectedIndexChanged!;
+
+        var monthLabel = new Label { Text = "Mes:", Location = new Point(10, 10), AutoSize = true };
+        var monthComboBox = new ComboBox
+        {
+            Location = new Point(70, 10), // Más espacio a la derecha del label
+            Size = new Size(100, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+
+        var yearLabel = new Label { Text = "Año:", Location = new Point(190, 10), AutoSize = true};
+        var yearComboBox = new ComboBox
+        {
+            Location = new Point(240, 10), // Más espacio a la derecha del label
+            Size = new Size(100, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        var currentYear = DateTime.Now.Year;
+        for (var y = currentYear - 5; y <= currentYear + 1; y++)
+            yearComboBox.Items.Add(y);
+        for (var m = 1; m <= 12; m++)
+            monthComboBox.Items.Add(new DateTime(1, m, 1).ToString("MMMM"));
+        monthComboBox.SelectedIndex = DateTime.Now.Month - 1;
+        yearComboBox.SelectedItem = currentYear;
+        btnGenerarReporte.Click += BtnGenerarReporte_Click!;
+
+        reportParamsPanel.Controls.Clear();
+        reportParamsPanel.Controls.Add(monthLabel);
+        reportParamsPanel.Controls.Add(monthComboBox);
+        reportParamsPanel.Controls.Add(yearLabel);
+        reportParamsPanel.Controls.Add(yearComboBox);
     }
 
     private async void MainForm_Load(object sender, EventArgs e)
@@ -222,33 +252,76 @@ public partial class MainForm : Form
 
     private async void MyDataTabControl_SelectedIndexChanged(object sender, EventArgs e)
     {
-        if (myDataTabControl.SelectedTab == tabPage3)
+        try
         {
-            var user = SessionManager.CurrentUser!;
-            nameTxt.Text = user.FirstName;
-            lastNameTxt.Text = user.LastName;
-            emailTxt.Text = user.Email;
-            rolesTxt.Text = string.Join(", ", user.UserRoles.Select(r => r.GetRoleName()));
-
-            // Cargar cuotas
-            var fees = await _feeService.SearchFees(DateOnly.MinValue, DateOnly.MaxValue, user.Id);
-            feesUserGridView.DataSource = fees.Select(f => new
+            if (myDataTabControl.SelectedTab == tabPage3)
             {
-                De = f.StartDate,
-                Hasta = f.EndDate,
-                Monto = f.Amount,
-                Estado = f.Payment?.Status
-            }).ToList();
+                var user = SessionManager.CurrentUser!;
+                nameTxt.Text = user.FirstName;
+                lastNameTxt.Text = user.LastName;
+                emailTxt.Text = user.Email;
+                rolesTxt.Text = string.Join(", ", user.UserRoles.Select(r => r.GetRoleName()));
 
-            // Cargar pagos
-            var payments =
-                await _paymentService.SearchPayments(DateOnly.MinValue, DateOnly.MaxValue, user.Id);
-            paymentsUserGridView.DataSource = payments.Select(p => new
+                // Cargar cuotas
+                var fees =
+                    await _feeService.SearchFees(DateOnly.MinValue, DateOnly.MaxValue, user.Id);
+                feesUserGridView.DataSource = fees.Select(f => new
+                {
+                    De = f.StartDate,
+                    Hasta = f.EndDate,
+                    Monto = f.Amount,
+                    Estado = f.Payment?.Status
+                }).ToList();
+
+                // Cargar pagos
+                var payments =
+                    await _paymentService.SearchPayments(DateOnly.MinValue, DateOnly.MaxValue,
+                        user.Id);
+                paymentsUserGridView.DataSource = payments.Select(p => new
+                {
+                    Fecha = p.PaymentDate,
+                    Monto = p.Amount,
+                    Estado = p.Status
+                }).ToList();
+            }
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show("Error al cargar tus datos: " + exception.Message, ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private async void BtnGenerarReporte_Click(object sender, EventArgs e)
+    {
+        try
+        {
+            if (reportTypeComboBox.SelectedItem?.ToString() == "Recaudación mensual")
             {
-                Fecha = p.PaymentDate,
-                Monto = p.Amount,
-                Estado = p.Status
-            }).ToList();
+                // Buscar los ComboBox de mes y año en el panel
+                var monthComboBox = reportParamsPanel.Controls.OfType<ComboBox>().First();
+                var yearComboBox = reportParamsPanel.Controls.OfType<ComboBox>().Last();
+
+                var month = monthComboBox.SelectedIndex + 1;
+                var year = int.Parse(yearComboBox.SelectedItem?.ToString()!);
+
+                var from = new DateOnly(year, month, 1);
+                var to = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
+
+                var payments = await _paymentService.SearchPayments(from, to, 0);
+                var total = payments.Sum(p => p.Amount);
+
+                reportGridView.DataSource = new[]
+                {
+                    new { Mes = from.ToString("MMMM"), Año = year, TotalRecaudado = total }
+                };
+                reportGridView.Columns["TotalRecaudado"]!.HeaderText = "Total Recaudado";
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al generar el reporte: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }
