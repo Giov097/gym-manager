@@ -41,7 +41,7 @@ public partial class MainForm : Form
         var monthLabel = new Label { Text = "Mes:", Location = new Point(10, 10), AutoSize = true };
         var monthComboBox = new ComboBox
         {
-            Location = new Point(70, 10), // Más espacio a la derecha del label
+            Location = new Point(70, 10),
             Size = new Size(100, 23),
             DropDownStyle = ComboBoxStyle.DropDownList
         };
@@ -49,7 +49,7 @@ public partial class MainForm : Form
         var yearLabel = new Label { Text = "Año:", Location = new Point(190, 10), AutoSize = true};
         var yearComboBox = new ComboBox
         {
-            Location = new Point(240, 10), // Más espacio a la derecha del label
+            Location = new Point(240, 10),
             Size = new Size(100, 23),
             DropDownStyle = ComboBoxStyle.DropDownList
         };
@@ -60,13 +60,45 @@ public partial class MainForm : Form
             monthComboBox.Items.Add(new DateTime(1, m, 1).ToString("MMMM"));
         monthComboBox.SelectedIndex = DateTime.Now.Month - 1;
         yearComboBox.SelectedItem = currentYear;
-        btnGenerarReporte.Click += BtnGenerarReporte_Click!;
+        btnGenerateReport.Click += BtnGenerateReport_Click!;
 
         reportParamsPanel.Controls.Clear();
         reportParamsPanel.Controls.Add(monthLabel);
         reportParamsPanel.Controls.Add(monthComboBox);
         reportParamsPanel.Controls.Add(yearLabel);
         reportParamsPanel.Controls.Add(yearComboBox);
+
+        // Switch para mostrar/ocultar combos según el tipo de reporte
+        reportTypeComboBox.SelectedIndexChanged += (_, _) =>
+        {
+            switch (reportTypeComboBox.SelectedItem?.ToString())
+            {
+                case "Recaudación mensual":
+                    monthLabel.Visible = monthComboBox.Visible = true;
+                    yearLabel.Visible = yearComboBox.Visible = true;
+                    break;
+                case "Alumnos con más deuda":
+                    monthLabel.Visible = monthComboBox.Visible = false;
+                    yearLabel.Visible = yearComboBox.Visible = false;
+                    break;
+                default:
+                    monthLabel.Visible = monthComboBox.Visible = false;
+                    yearLabel.Visible = yearComboBox.Visible = false;
+                    break;
+            }
+        };
+        // Inicializar visibilidad
+        switch (reportTypeComboBox.SelectedItem?.ToString())
+        {
+            case "Recaudación mensual":
+                monthLabel.Visible = monthComboBox.Visible = true;
+                yearLabel.Visible = yearComboBox.Visible = true;
+                break;
+            default:
+                monthLabel.Visible = monthComboBox.Visible = false;
+                yearLabel.Visible = yearComboBox.Visible = false;
+                break;
+        }
     }
 
     private async void MainForm_Load(object sender, EventArgs e)
@@ -292,30 +324,63 @@ public partial class MainForm : Form
         }
     }
 
-    private async void BtnGenerarReporte_Click(object sender, EventArgs e)
+    private async void BtnGenerateReport_Click(object sender, EventArgs e)
     {
         try
         {
-            if (reportTypeComboBox.SelectedItem?.ToString() == "Recaudación mensual")
+            switch (reportTypeComboBox.SelectedItem?.ToString())
             {
-                // Buscar los ComboBox de mes y año en el panel
-                var monthComboBox = reportParamsPanel.Controls.OfType<ComboBox>().First();
-                var yearComboBox = reportParamsPanel.Controls.OfType<ComboBox>().Last();
-
-                var month = monthComboBox.SelectedIndex + 1;
-                var year = int.Parse(yearComboBox.SelectedItem?.ToString()!);
-
-                var from = new DateOnly(year, month, 1);
-                var to = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
-
-                var payments = await _paymentService.SearchPayments(from, to, 0);
-                var total = payments.Sum(p => p.Amount);
-
-                reportGridView.DataSource = new[]
+                case "Recaudación mensual":
                 {
-                    new { Mes = from.ToString("MMMM"), Año = year, TotalRecaudado = total }
-                };
-                reportGridView.Columns["TotalRecaudado"]!.HeaderText = "Total Recaudado";
+                    // Buscar los ComboBox de mes y año en el panel
+                    var monthComboBox = reportParamsPanel.Controls.OfType<ComboBox>().First();
+                    var yearComboBox = reportParamsPanel.Controls.OfType<ComboBox>().Last();
+
+                    var month = monthComboBox.SelectedIndex + 1;
+                    var year = int.Parse(yearComboBox.SelectedItem?.ToString()!);
+
+                    var from = new DateOnly(year, month, 1);
+                    var to = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
+
+                    var payments = await _paymentService.SearchPayments(from, to, 0);
+                    var total = payments.Sum(p => p.Amount);
+
+                    reportGridView.DataSource = new[]
+                    {
+                        new { Mes = from.ToString("MMMM"), Año = year, TotalRecaudado = total }
+                    };
+                    reportGridView.Columns["TotalRecaudado"]!.HeaderText = "Total Recaudado";
+                    break;
+                }
+                case "Alumnos con más deuda":
+                {
+                    var users = await _userService.GetUsers();
+                    var fees = await _feeService.GetFees();
+
+                    var deudas = users.Select(u =>
+                        {
+                            var cuotasUsuario = fees.Where(f => f.UserId == u.Id);
+                            var deuda = cuotasUsuario.Sum(f =>
+                                f.Payment == null ? f.Amount : Math.Max(0, f.Amount - f.Payment.Amount)
+                            );
+                            return new
+                            {
+                                Alumno = $"{u.FirstName} {u.LastName}",
+                                Deuda = deuda
+                            };
+                        })
+                        .Where(d => d.Deuda > 0)
+                        .OrderByDescending(d => d.Deuda)
+                        .ToList();
+
+                    reportGridView.DataSource = deudas;
+                    if (reportGridView.Columns["Alumno"] != null)
+                        reportGridView.Columns["Alumno"].HeaderText = "Alumno";
+                    if (reportGridView.Columns["Deuda"] != null)
+                        reportGridView.Columns["Deuda"].HeaderText = "Deuda ($)";
+                    break;
+                }
+                // Aquí puedes agregar más casos para otros reportes en el futuro
             }
         }
         catch (Exception ex)

@@ -62,7 +62,7 @@ partial class MainForm
         tabPageReportes = new System.Windows.Forms.TabPage();
         reportTypeComboBox = new System.Windows.Forms.ComboBox();
         reportParamsPanel = new System.Windows.Forms.Panel();
-        btnGenerarReporte = new System.Windows.Forms.Button();
+        btnGenerateReport = new System.Windows.Forms.Button();
         reportGridView = new System.Windows.Forms.DataGridView();
         myDataTabControl.SuspendLayout();
         tabPage1.SuspendLayout();
@@ -345,9 +345,9 @@ partial class MainForm
         reportParamsPanel.Location = new System.Drawing.Point(20, 60);
         reportParamsPanel.Size = new System.Drawing.Size(400, 60);
 
-        btnGenerarReporte.Text = "Generar";
-        btnGenerarReporte.Location = new System.Drawing.Point(440, 60);
-        btnGenerarReporte.Size = new System.Drawing.Size(100, 30);
+        btnGenerateReport.Text = "Generar";
+        btnGenerateReport.Location = new System.Drawing.Point(440, 60);
+        btnGenerateReport.Size = new System.Drawing.Size(100, 30);
 
         reportGridView.Location = new System.Drawing.Point(20, 130);
         reportGridView.Size = new System.Drawing.Size(700, 250);
@@ -355,7 +355,7 @@ partial class MainForm
 
         tabPageReportes.Controls.Add(reportTypeComboBox);
         tabPageReportes.Controls.Add(reportParamsPanel);
-        tabPageReportes.Controls.Add(btnGenerarReporte);
+        tabPageReportes.Controls.Add(btnGenerateReport);
         tabPageReportes.Controls.Add(reportGridView);
         myDataTabControl.Controls.Add(tabPageReportes);
         // 
@@ -417,7 +417,7 @@ partial class MainForm
     private  System.Windows.Forms.TabPage tabPageReportes;
     private  System.Windows.Forms.ComboBox reportTypeComboBox;
     private System.Windows.Forms.Panel reportParamsPanel;
-    private System.Windows.Forms.Button btnGenerarReporte;
+    private System.Windows.Forms.Button btnGenerateReport;
     private System.Windows.Forms.DataGridView reportGridView;
 
     #endregion
