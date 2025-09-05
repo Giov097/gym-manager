@@ -60,8 +60,35 @@ public partial class MainForm : Form
             monthComboBox.Items.Add(new DateTime(1, m, 1).ToString("MMMM"));
         monthComboBox.SelectedIndex = DateTime.Now.Month - 1;
         yearComboBox.SelectedItem = currentYear;
+
+        // Controles para "Pagos por método"
+        var fromLabel = new Label { Text = "Desde:", Location = new Point(10, 10), AutoSize = true };
+        var fromDatePicker = new DateTimePicker
+        {
+            Location = new Point(70, 10),
+            Size = new Size(120, 23),
+            Format = DateTimePickerFormat.Short
+        };
+        var toLabel = new Label { Text = "Hasta:", Location = new Point(210, 10), AutoSize = true };
+        var toDatePicker = new DateTimePicker
+        {
+            Location = new Point(260, 10),
+            Size = new Size(120, 23),
+            Format = DateTimePickerFormat.Short
+        };
+        var methodLabel = new Label { Text = "Método:", Location = new Point(10, 40), AutoSize = true };
+        var methodComboBox = new ComboBox
+        {
+            Location = new Point(70, 40),
+            Size = new Size(120, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        methodComboBox.Items.AddRange(new object[] { "Efectivo", "Tarjeta" });
+        methodComboBox.SelectedIndex = 0;
+
         btnGenerateReport.Click += BtnGenerateReport_Click!;
 
+        // Inicialización de controles de parámetros
         reportParamsPanel.Controls.Clear();
         reportParamsPanel.Controls.Add(monthLabel);
         reportParamsPanel.Controls.Add(monthComboBox);
@@ -71,32 +98,51 @@ public partial class MainForm : Form
         // Switch para mostrar/ocultar combos según el tipo de reporte
         reportTypeComboBox.SelectedIndexChanged += (_, _) =>
         {
+            reportParamsPanel.Controls.Clear();
             switch (reportTypeComboBox.SelectedItem?.ToString())
             {
                 case "Recaudación mensual":
-                    monthLabel.Visible = monthComboBox.Visible = true;
-                    yearLabel.Visible = yearComboBox.Visible = true;
+                    reportParamsPanel.Controls.Add(monthLabel);
+                    reportParamsPanel.Controls.Add(monthComboBox);
+                    reportParamsPanel.Controls.Add(yearLabel);
+                    reportParamsPanel.Controls.Add(yearComboBox);
+                    break;
+                case "Pagos por método":
+                    reportParamsPanel.Controls.Add(fromLabel);
+                    reportParamsPanel.Controls.Add(fromDatePicker);
+                    reportParamsPanel.Controls.Add(toLabel);
+                    reportParamsPanel.Controls.Add(toDatePicker);
+                    reportParamsPanel.Controls.Add(methodLabel);
+                    reportParamsPanel.Controls.Add(methodComboBox);
                     break;
                 case "Alumnos con más deuda":
-                    monthLabel.Visible = monthComboBox.Visible = false;
-                    yearLabel.Visible = yearComboBox.Visible = false;
+                    // Sin parámetros
                     break;
                 default:
-                    monthLabel.Visible = monthComboBox.Visible = false;
-                    yearLabel.Visible = yearComboBox.Visible = false;
+                    // Sin parámetros
                     break;
             }
         };
         // Inicializar visibilidad
+        reportParamsPanel.Controls.Clear();
         switch (reportTypeComboBox.SelectedItem?.ToString())
         {
             case "Recaudación mensual":
-                monthLabel.Visible = monthComboBox.Visible = true;
-                yearLabel.Visible = yearComboBox.Visible = true;
+                reportParamsPanel.Controls.Add(monthLabel);
+                reportParamsPanel.Controls.Add(monthComboBox);
+                reportParamsPanel.Controls.Add(yearLabel);
+                reportParamsPanel.Controls.Add(yearComboBox);
+                break;
+            case "Pagos por método":
+                reportParamsPanel.Controls.Add(fromLabel);
+                reportParamsPanel.Controls.Add(fromDatePicker);
+                reportParamsPanel.Controls.Add(toLabel);
+                reportParamsPanel.Controls.Add(toDatePicker);
+                reportParamsPanel.Controls.Add(methodLabel);
+                reportParamsPanel.Controls.Add(methodComboBox);
                 break;
             default:
-                monthLabel.Visible = monthComboBox.Visible = false;
-                yearLabel.Visible = yearComboBox.Visible = false;
+                // Sin parámetros
                 break;
         }
     }
@@ -375,12 +421,60 @@ public partial class MainForm : Form
 
                     reportGridView.DataSource = deudas;
                     if (reportGridView.Columns["Alumno"] != null)
-                        reportGridView.Columns["Alumno"].HeaderText = "Alumno";
+                        reportGridView.Columns["Alumno"]!.HeaderText = "Alumno";
                     if (reportGridView.Columns["Deuda"] != null)
-                        reportGridView.Columns["Deuda"].HeaderText = "Deuda ($)";
+                        reportGridView.Columns["Deuda"]!.HeaderText = "Deuda ($)";
                     break;
                 }
-                // Aquí puedes agregar más casos para otros reportes en el futuro
+                case "Pagos por método":
+                {
+                    var fromDatePicker = reportParamsPanel.Controls.OfType<DateTimePicker>().First();
+                    var toDatePicker = reportParamsPanel.Controls.OfType<DateTimePicker>().Last();
+                    var methodComboBox = reportParamsPanel.Controls.OfType<ComboBox>().FirstOrDefault(cb => cb.Items.Contains("Efectivo"));
+
+                    var from = DateOnly.FromDateTime(fromDatePicker.Value.Date);
+                    var to = DateOnly.FromDateTime(toDatePicker.Value.Date);
+                    var method = methodComboBox?.SelectedItem?.ToString();
+
+                    var payments = await _paymentService.SearchPayments(from, to, 0);
+
+                    IEnumerable<object> filteredPayments;
+                    if (method == "Efectivo")
+                    {
+                        filteredPayments = payments
+                            .Where(p => p.GetType().Name == "CashPayment")
+                            .Select(p => new
+                            {
+                                Fecha = p.PaymentDate,
+                                Monto = p.Amount,
+                                Estado = p.Status,
+                                Metodo = "Efectivo"
+                            });
+                    }
+                    else // Tarjeta
+                    {
+                        filteredPayments = payments
+                            .Where(p => p.GetType().Name == "CardPayment")
+                            .Select(p => new
+                            {
+                                Fecha = p.PaymentDate,
+                                Monto = p.Amount,
+                                Estado = p.Status,
+                                Metodo = "Tarjeta"
+                            });
+                    }
+
+                    reportGridView.DataSource = filteredPayments.ToList();
+                    if (reportGridView.Columns["Fecha"] != null)
+                        reportGridView.Columns["Fecha"]!.HeaderText = "Fecha";
+                    if (reportGridView.Columns["Monto"] != null)
+                        reportGridView.Columns["Monto"]!.HeaderText = "Monto";
+                    if (reportGridView.Columns["Estado"] != null)
+                        reportGridView.Columns["Estado"]!.HeaderText = "Estado";
+                    if (reportGridView.Columns["Metodo"] != null)
+                        reportGridView.Columns["Metodo"]!.HeaderText = "Método";
+                    break;
+                }
             }
         }
         catch (Exception ex)
