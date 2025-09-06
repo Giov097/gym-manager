@@ -145,6 +145,22 @@ public partial class MainForm : Form
         reportParamsPanel.Controls.Add(yearLabel);
         reportParamsPanel.Controls.Add(yearComboBox);
 
+        // Controles para "Pagos por rango de fechas"
+        var rangeFromLabel = new Label { Text = "Desde:", Location = new Point(10, 10), AutoSize = true };
+        var rangeFromDatePicker = new DateTimePicker
+        {
+            Location = new Point(70, 10),
+            Size = new Size(120, 23),
+            Format = DateTimePickerFormat.Short
+        };
+        var rangeToLabel = new Label { Text = "Hasta:", Location = new Point(210, 10), AutoSize = true };
+        var rangeToDatePicker = new DateTimePicker
+        {
+            Location = new Point(260, 10),
+            Size = new Size(120, 23),
+            Format = DateTimePickerFormat.Short
+        };
+
         // Switch para mostrar/ocultar combos según el tipo de reporte
         reportTypeComboBox.SelectedIndexChanged += (_, _) =>
         {
@@ -171,6 +187,13 @@ public partial class MainForm : Form
                     break;
                 case "Alumnos con más deuda":
                 case "Cuotas impagas":
+                    break;
+                case "Pagos por rango de fechas":
+                    reportParamsPanel.Controls.Add(rangeFromLabel);
+                    reportParamsPanel.Controls.Add(rangeFromDatePicker);
+                    reportParamsPanel.Controls.Add(rangeToLabel);
+                    reportParamsPanel.Controls.Add(rangeToDatePicker);
+                    break;
                 default:
                     break;
             }
@@ -195,6 +218,12 @@ public partial class MainForm : Form
             case "Historial de pagos de un alumno":
                 reportParamsPanel.Controls.Add(userLabel);
                 reportParamsPanel.Controls.Add(userComboBox);
+                break;
+            case "Pagos por rango de fechas":
+                reportParamsPanel.Controls.Add(rangeFromLabel);
+                reportParamsPanel.Controls.Add(rangeFromDatePicker);
+                reportParamsPanel.Controls.Add(rangeToLabel);
+                reportParamsPanel.Controls.Add(rangeToDatePicker);
                 break;
             default:
                 break;
@@ -455,6 +484,11 @@ public partial class MainForm : Form
                     await HandleUserPaymentHistory();
                     break;
                 }
+                case "Pagos por rango de fechas":
+                {
+                    await HandlePaymentsByDateRange();
+                    break;
+                }
             }
         }
         catch (Exception ex)
@@ -631,5 +665,34 @@ public partial class MainForm : Form
             reportGridView.Columns[Monto]!.HeaderText = Monto;
         if (reportGridView.Columns[Estado] != null)
             reportGridView.Columns[Estado]!.HeaderText = Estado;
+    }
+
+    private async Task HandlePaymentsByDateRange()
+    {
+        var fromDatePicker = reportParamsPanel.Controls.OfType<DateTimePicker>().First();
+        var toDatePicker = reportParamsPanel.Controls.OfType<DateTimePicker>().Last();
+
+        var from = DateOnly.FromDateTime(fromDatePicker.Value.Date);
+        var to = DateOnly.FromDateTime(toDatePicker.Value.Date);
+
+        var payments = await _paymentService.SearchPayments(from, to, 0);
+
+        var pagosList = payments.Select(p => new
+        {
+            Fecha = p.PaymentDate,
+            Monto = p.Amount,
+            Estado = p.Status,
+            Metodo = p.GetType().Name == "CashPayment" ? Efectivo : Tarjeta
+        }).ToList();
+
+        reportGridView.DataSource = pagosList;
+        if (reportGridView.Columns[Fecha] != null)
+            reportGridView.Columns[Fecha]!.HeaderText = Fecha;
+        if (reportGridView.Columns[Monto] != null)
+            reportGridView.Columns[Monto]!.HeaderText = Monto;
+        if (reportGridView.Columns[Estado] != null)
+            reportGridView.Columns[Estado]!.HeaderText = Estado;
+        if (reportGridView.Columns[Metodo] != null)
+            reportGridView.Columns[Metodo]!.HeaderText = "Método";
     }
 }
