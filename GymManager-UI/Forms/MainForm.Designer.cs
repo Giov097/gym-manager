@@ -334,11 +334,7 @@ partial class MainForm
             "Pagos por método",
             "Cuotas impagas",
             "Historial de pagos de un alumno",
-            "Alumnos activos/inactivos",
-            "Recaudación por entrenador",
-            "Cuotas generadas vs. pagadas",
-            "Pagos por rango de fechas",
-            "Alumnos nuevos del mes"
+            "Pagos por rango de fechas"
         });
         reportTypeComboBox.SelectedIndex = 0;
 

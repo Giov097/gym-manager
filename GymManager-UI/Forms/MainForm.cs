@@ -109,6 +109,35 @@ public partial class MainForm : Form
 
         btnGenerateReport.Click += BtnGenerateReport_Click!;
 
+        // Controles para "Historial de pagos de un alumno"
+        var userLabel = new Label
+            { Text = "Alumno:", Location = new Point(10, 10), AutoSize = true };
+        var userComboBox = new ComboBox
+        {
+            Location = new Point(70, 10),
+            Size = new Size(250, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        // Cargar alumnos al iniciar
+        Task.Run(async () =>
+        {
+            var users = await _userService.GetUsers();
+            Invoke(() =>
+            {
+                userComboBox.Items.Clear();
+                foreach (var u in users)
+                {
+                    userComboBox.Items.Add(new
+                        { Text = $"{u.FirstName} {u.LastName}", Value = u.Id });
+                }
+
+                userComboBox.DisplayMember = "Text";
+                userComboBox.ValueMember = "Value";
+                if (userComboBox.Items.Count > 0)
+                    userComboBox.SelectedIndex = 0;
+            });
+        });
+
         // Inicialización de controles de parámetros
         reportParamsPanel.Controls.Clear();
         reportParamsPanel.Controls.Add(monthLabel);
@@ -136,18 +165,16 @@ public partial class MainForm : Form
                     reportParamsPanel.Controls.Add(methodLabel);
                     reportParamsPanel.Controls.Add(methodComboBox);
                     break;
+                case "Historial de pagos de un alumno":
+                    reportParamsPanel.Controls.Add(userLabel);
+                    reportParamsPanel.Controls.Add(userComboBox);
+                    break;
                 case "Alumnos con más deuda":
-                    // Sin parámetros
-                    break;
                 case "Cuotas impagas":
-                    // Sin parámetros
-                    break;
                 default:
-                    // Sin parámetros
                     break;
             }
         };
-        // Inicializar visibilidad
         reportParamsPanel.Controls.Clear();
         switch (reportTypeComboBox.SelectedItem?.ToString())
         {
@@ -165,8 +192,11 @@ public partial class MainForm : Form
                 reportParamsPanel.Controls.Add(methodLabel);
                 reportParamsPanel.Controls.Add(methodComboBox);
                 break;
+            case "Historial de pagos de un alumno":
+                reportParamsPanel.Controls.Add(userLabel);
+                reportParamsPanel.Controls.Add(userComboBox);
+                break;
             default:
-                // Sin parámetros
                 break;
         }
     }
@@ -420,6 +450,11 @@ public partial class MainForm : Form
                     await HandleUnpaidFees();
                     break;
                 }
+                case "Historial de pagos de un alumno":
+                {
+                    await HandleUserPaymentHistory();
+                    break;
+                }
             }
         }
         catch (Exception ex)
@@ -561,6 +596,39 @@ public partial class MainForm : Form
             reportGridView.Columns[Monto]!.HeaderText = Monto;
         if (reportGridView.Columns["Pagado"] != null)
             reportGridView.Columns["Pagado"]!.HeaderText = "Pagado";
+        if (reportGridView.Columns[Estado] != null)
+            reportGridView.Columns[Estado]!.HeaderText = Estado;
+    }
+
+    private async Task HandleUserPaymentHistory()
+    {
+        var alumnoComboBox = reportParamsPanel.Controls.OfType<ComboBox>().FirstOrDefault();
+        if (alumnoComboBox == null || alumnoComboBox.SelectedItem == null)
+        {
+            MessageBox.Show("Seleccione un alumno.", ErrorCaption, MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
+
+        dynamic selected = alumnoComboBox.SelectedItem;
+        long userId = selected.Value;
+
+        await _userService.GetUserById(userId);
+        var pagos =
+            await _paymentService.SearchPayments(DateOnly.MinValue, DateOnly.MaxValue, userId);
+
+        var pagosList = pagos.Select(p => new
+        {
+            Fecha = p.PaymentDate,
+            Monto = p.Amount,
+            Estado = p.Status
+        }).ToList();
+
+        reportGridView.DataSource = pagosList;
+        if (reportGridView.Columns[Fecha] != null)
+            reportGridView.Columns[Fecha]!.HeaderText = Fecha;
+        if (reportGridView.Columns[Monto] != null)
+            reportGridView.Columns[Monto]!.HeaderText = Monto;
         if (reportGridView.Columns[Estado] != null)
             reportGridView.Columns[Estado]!.HeaderText = Estado;
     }
