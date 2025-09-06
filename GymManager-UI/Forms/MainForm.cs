@@ -5,11 +5,29 @@ namespace GymManager.Forms;
 
 public partial class MainForm : Form
 {
+    #region Services
+
     private readonly IUserService _userService;
     private readonly IFeeService _feeService;
     private readonly IPaymentService _paymentService;
+
+    #endregion
+
+    #region Constants
+
     private const string? SuccessCaption = "Éxito";
     private const string? ErrorCaption = "Error";
+    private const string Alumno = "Alumno";
+    private const string Estado = "Estado";
+    private const string Metodo = "Metodo";
+    private const string Fecha = "Fecha";
+    private const string Monto = "Monto";
+    private const string Efectivo = "Efectivo";
+    private const string Tarjeta = "Tarjeta";
+    private const string Desde = "Desde";
+    private const string Hasta = "Hasta";
+
+    #endregion
 
     public MainForm(IUserService userService, IFeeService feeService,
         IPaymentService paymentService)
@@ -46,7 +64,7 @@ public partial class MainForm : Form
             DropDownStyle = ComboBoxStyle.DropDownList
         };
 
-        var yearLabel = new Label { Text = "Año:", Location = new Point(190, 10), AutoSize = true};
+        var yearLabel = new Label { Text = "Año:", Location = new Point(190, 10), AutoSize = true };
         var yearComboBox = new ComboBox
         {
             Location = new Point(240, 10),
@@ -57,12 +75,14 @@ public partial class MainForm : Form
         for (var y = currentYear - 5; y <= currentYear + 1; y++)
             yearComboBox.Items.Add(y);
         for (var m = 1; m <= 12; m++)
-            monthComboBox.Items.Add(new DateTime(1, m, 1).ToString("MMMM"));
+            monthComboBox.Items.Add(
+                new DateTime(1, m, 1, 0, 0, 0, DateTimeKind.Local).ToString("MMMM"));
         monthComboBox.SelectedIndex = DateTime.Now.Month - 1;
         yearComboBox.SelectedItem = currentYear;
 
         // Controles para "Pagos por método"
-        var fromLabel = new Label { Text = "Desde:", Location = new Point(10, 10), AutoSize = true };
+        var fromLabel = new Label
+            { Text = "Desde:", Location = new Point(10, 10), AutoSize = true };
         var fromDatePicker = new DateTimePicker
         {
             Location = new Point(70, 10),
@@ -76,14 +96,15 @@ public partial class MainForm : Form
             Size = new Size(120, 23),
             Format = DateTimePickerFormat.Short
         };
-        var methodLabel = new Label { Text = "Método:", Location = new Point(10, 40), AutoSize = true };
+        var methodLabel = new Label
+            { Text = "Método:", Location = new Point(10, 40), AutoSize = true };
         var methodComboBox = new ComboBox
         {
             Location = new Point(70, 40),
             Size = new Size(120, 23),
             DropDownStyle = ComboBoxStyle.DropDownList
         };
-        methodComboBox.Items.AddRange(new object[] { "Efectivo", "Tarjeta" });
+        methodComboBox.Items.AddRange([Efectivo, Tarjeta]);
         methodComboBox.SelectedIndex = 0;
 
         btnGenerateReport.Click += BtnGenerateReport_Click!;
@@ -116,6 +137,9 @@ public partial class MainForm : Form
                     reportParamsPanel.Controls.Add(methodComboBox);
                     break;
                 case "Alumnos con más deuda":
+                    // Sin parámetros
+                    break;
+                case "Cuotas impagas":
                     // Sin parámetros
                     break;
                 default:
@@ -179,11 +203,11 @@ public partial class MainForm : Form
         // Personalizar columnas de cuotas
         feesGridView.Columns["Id"]!.HeaderText = "ID";
         feesGridView.Columns["Id"]!.Width = 50;
-        feesGridView.Columns["StartDate"]!.HeaderText = "Desde";
+        feesGridView.Columns["StartDate"]!.HeaderText = Desde;
         feesGridView.Columns["StartDate"]!.Width = 100;
-        feesGridView.Columns["EndDate"]!.HeaderText = "Hasta";
+        feesGridView.Columns["EndDate"]!.HeaderText = Hasta;
         feesGridView.Columns["EndDate"]!.Width = 100;
-        feesGridView.Columns["Amount"]!.HeaderText = "Monto";
+        feesGridView.Columns["Amount"]!.HeaderText = Monto;
         feesGridView.Columns["Amount"]!.Width = 80;
         feesGridView.Columns["ViewUser"]!.HeaderText = "Usuario";
         feesGridView.Columns["ViewUser"]!.Width = 80;
@@ -378,101 +402,22 @@ public partial class MainForm : Form
             {
                 case "Recaudación mensual":
                 {
-                    // Buscar los ComboBox de mes y año en el panel
-                    var monthComboBox = reportParamsPanel.Controls.OfType<ComboBox>().First();
-                    var yearComboBox = reportParamsPanel.Controls.OfType<ComboBox>().Last();
-
-                    var month = monthComboBox.SelectedIndex + 1;
-                    var year = int.Parse(yearComboBox.SelectedItem?.ToString()!);
-
-                    var from = new DateOnly(year, month, 1);
-                    var to = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
-
-                    var payments = await _paymentService.SearchPayments(from, to, 0);
-                    var total = payments.Sum(p => p.Amount);
-
-                    reportGridView.DataSource = new[]
-                    {
-                        new { Mes = from.ToString("MMMM"), Año = year, TotalRecaudado = total }
-                    };
-                    reportGridView.Columns["TotalRecaudado"]!.HeaderText = "Total Recaudado";
+                    await HandleMonthReceipts();
                     break;
                 }
                 case "Alumnos con más deuda":
                 {
-                    var users = await _userService.GetUsers();
-                    var fees = await _feeService.GetFees();
-
-                    var deudas = users.Select(u =>
-                        {
-                            var cuotasUsuario = fees.Where(f => f.UserId == u.Id);
-                            var deuda = cuotasUsuario.Sum(f =>
-                                f.Payment == null ? f.Amount : Math.Max(0, f.Amount - f.Payment.Amount)
-                            );
-                            return new
-                            {
-                                Alumno = $"{u.FirstName} {u.LastName}",
-                                Deuda = deuda
-                            };
-                        })
-                        .Where(d => d.Deuda > 0)
-                        .OrderByDescending(d => d.Deuda)
-                        .ToList();
-
-                    reportGridView.DataSource = deudas;
-                    if (reportGridView.Columns["Alumno"] != null)
-                        reportGridView.Columns["Alumno"]!.HeaderText = "Alumno";
-                    if (reportGridView.Columns["Deuda"] != null)
-                        reportGridView.Columns["Deuda"]!.HeaderText = "Deuda ($)";
+                    await HandleUsersWithMostDebt();
                     break;
                 }
                 case "Pagos por método":
                 {
-                    var fromDatePicker = reportParamsPanel.Controls.OfType<DateTimePicker>().First();
-                    var toDatePicker = reportParamsPanel.Controls.OfType<DateTimePicker>().Last();
-                    var methodComboBox = reportParamsPanel.Controls.OfType<ComboBox>().FirstOrDefault(cb => cb.Items.Contains("Efectivo"));
-
-                    var from = DateOnly.FromDateTime(fromDatePicker.Value.Date);
-                    var to = DateOnly.FromDateTime(toDatePicker.Value.Date);
-                    var method = methodComboBox?.SelectedItem?.ToString();
-
-                    var payments = await _paymentService.SearchPayments(from, to, 0);
-
-                    IEnumerable<object> filteredPayments;
-                    if (method == "Efectivo")
-                    {
-                        filteredPayments = payments
-                            .Where(p => p.GetType().Name == "CashPayment")
-                            .Select(p => new
-                            {
-                                Fecha = p.PaymentDate,
-                                Monto = p.Amount,
-                                Estado = p.Status,
-                                Metodo = "Efectivo"
-                            });
-                    }
-                    else // Tarjeta
-                    {
-                        filteredPayments = payments
-                            .Where(p => p.GetType().Name == "CardPayment")
-                            .Select(p => new
-                            {
-                                Fecha = p.PaymentDate,
-                                Monto = p.Amount,
-                                Estado = p.Status,
-                                Metodo = "Tarjeta"
-                            });
-                    }
-
-                    reportGridView.DataSource = filteredPayments.ToList();
-                    if (reportGridView.Columns["Fecha"] != null)
-                        reportGridView.Columns["Fecha"]!.HeaderText = "Fecha";
-                    if (reportGridView.Columns["Monto"] != null)
-                        reportGridView.Columns["Monto"]!.HeaderText = "Monto";
-                    if (reportGridView.Columns["Estado"] != null)
-                        reportGridView.Columns["Estado"]!.HeaderText = "Estado";
-                    if (reportGridView.Columns["Metodo"] != null)
-                        reportGridView.Columns["Metodo"]!.HeaderText = "Método";
+                    await HandlePaymentsByMethod();
+                    break;
+                }
+                case "Cuotas impagas":
+                {
+                    await HandleUnpaidFees();
                     break;
                 }
             }
@@ -482,5 +427,141 @@ public partial class MainForm : Form
             MessageBox.Show($"Error al generar el reporte: {ex.Message}", ErrorCaption,
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
+    }
+
+    private async Task HandlePaymentsByMethod()
+    {
+        var fromDatePicker = reportParamsPanel.Controls.OfType<DateTimePicker>().First();
+        var toDatePicker = reportParamsPanel.Controls.OfType<DateTimePicker>().Last();
+        var methodComboBox = reportParamsPanel.Controls.OfType<ComboBox>()
+            .FirstOrDefault(cb => cb.Items.Contains(Efectivo));
+
+        var from = DateOnly.FromDateTime(fromDatePicker.Value.Date);
+        var to = DateOnly.FromDateTime(toDatePicker.Value.Date);
+        var method = methodComboBox?.SelectedItem?.ToString();
+
+        var payments = await _paymentService.SearchPayments(from, to, 0);
+
+        IEnumerable<object> filteredPayments;
+        if (method == Efectivo)
+        {
+            filteredPayments = payments
+                .Where(p => p.GetType().Name == "CashPayment")
+                .Select(p => new
+                {
+                    Fecha = p.PaymentDate,
+                    Monto = p.Amount,
+                    Estado = p.Status,
+                    Metodo = Efectivo
+                });
+        }
+        else // Tarjeta
+        {
+            filteredPayments = payments
+                .Where(p => p.GetType().Name == "CardPayment")
+                .Select(p => new
+                {
+                    Fecha = p.PaymentDate,
+                    Monto = p.Amount,
+                    Estado = p.Status,
+                    Metodo = Tarjeta
+                });
+        }
+
+        reportGridView.DataSource = filteredPayments.ToList();
+        if (reportGridView.Columns[Fecha] != null)
+            reportGridView.Columns[Fecha]!.HeaderText = Fecha;
+        if (reportGridView.Columns[Monto] != null)
+            reportGridView.Columns[Monto]!.HeaderText = Monto;
+        if (reportGridView.Columns[Estado] != null)
+            reportGridView.Columns[Estado]!.HeaderText = Estado;
+        if (reportGridView.Columns[Metodo] != null)
+            reportGridView.Columns[Metodo]!.HeaderText = "Método";
+    }
+
+    private async Task HandleUsersWithMostDebt()
+    {
+        var users = await _userService.GetUsers();
+        var fees = await _feeService.GetFees();
+
+        var deudas = users.Select(u =>
+            {
+                var cuotasUsuario = fees.Where(f => f.UserId == u.Id);
+                var deuda = cuotasUsuario.Sum(f =>
+                    f.Payment == null ? f.Amount : Math.Max(0, f.Amount - f.Payment.Amount)
+                );
+                return new
+                {
+                    Alumno = $"{u.FirstName} {u.LastName}",
+                    Deuda = deuda
+                };
+            })
+            .Where(d => d.Deuda > 0)
+            .OrderByDescending(d => d.Deuda)
+            .ToList();
+
+        reportGridView.DataSource = deudas;
+        if (reportGridView.Columns[Alumno] != null)
+            reportGridView.Columns[Alumno]!.HeaderText = Alumno;
+        if (reportGridView.Columns["Deuda"] != null)
+            reportGridView.Columns["Deuda"]!.HeaderText = "Deuda ($)";
+    }
+
+    private async Task HandleMonthReceipts()
+    {
+        var monthComboBox = reportParamsPanel.Controls.OfType<ComboBox>().First();
+        var yearComboBox = reportParamsPanel.Controls.OfType<ComboBox>().Last();
+
+        var month = monthComboBox.SelectedIndex + 1;
+        var year = int.Parse(yearComboBox.SelectedItem?.ToString()!);
+
+        var from = new DateOnly(year, month, 1);
+        var to = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
+
+        var payments = await _paymentService.SearchPayments(from, to, 0);
+        var total = payments.Sum(p => p.Amount);
+
+        reportGridView.DataSource = new[]
+        {
+            new { Mes = from.ToString("MMMM"), Año = year, TotalRecaudado = total }
+        };
+        reportGridView.Columns["TotalRecaudado"]!.HeaderText = "Total Recaudado";
+    }
+
+    private async Task HandleUnpaidFees()
+    {
+        var users = await _userService.GetUsers();
+        var fees = await _feeService.GetFees();
+
+        var cuotasImpagas = fees
+            .Where(f => f.Payment == null || f.Payment.Amount < f.Amount)
+            .Select(f =>
+            {
+                var user = users.FirstOrDefault(u => u.Id == f.UserId);
+                return new
+                {
+                    Alumno = user != null ? $"{user.FirstName} {user.LastName}" : $"ID {f.UserId}",
+                    Desde = f.StartDate,
+                    Hasta = f.EndDate,
+                    Monto = f.Amount,
+                    Pagado = f.Payment?.Amount ?? 0,
+                    Estado = f.Payment == null ? "Impaga" : "Parcial"
+                };
+            })
+            .ToList();
+
+        reportGridView.DataSource = cuotasImpagas;
+        if (reportGridView.Columns[Alumno] != null)
+            reportGridView.Columns[Alumno]!.HeaderText = Alumno;
+        if (reportGridView.Columns[Desde] != null)
+            reportGridView.Columns[Desde]!.HeaderText = Desde;
+        if (reportGridView.Columns[Hasta] != null)
+            reportGridView.Columns[Hasta]!.HeaderText = Hasta;
+        if (reportGridView.Columns[Monto] != null)
+            reportGridView.Columns[Monto]!.HeaderText = Monto;
+        if (reportGridView.Columns["Pagado"] != null)
+            reportGridView.Columns["Pagado"]!.HeaderText = "Pagado";
+        if (reportGridView.Columns[Estado] != null)
+            reportGridView.Columns[Estado]!.HeaderText = Estado;
     }
 }
