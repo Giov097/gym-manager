@@ -157,7 +157,6 @@ public class UserMapper : IMapper<User, long>
             });
     }
 
-
     public Task<bool> Delete(long id)
     {
         var query = $"DELETE FROM users WHERE id = {id};";
@@ -186,6 +185,8 @@ public class UserMapper : IMapper<User, long>
                 return true;
             });
     }
+
+    #region BuildUtils
 
     private static User BuildUser(DataRow row)
     {
@@ -220,7 +221,6 @@ public class UserMapper : IMapper<User, long>
                 ? DateOnly.FromDateTime((DateTime)row["end_date"])
                 : default,
             Amount = row["amount"] != DBNull.Value ? (decimal)row["amount"] : 0,
-            //TODO: popular?
             Payment = null,
             UserId = row["fee_user_id"] != DBNull.Value
                 ? (long)row["fee_user_id"]
@@ -239,4 +239,6 @@ public class UserMapper : IMapper<User, long>
                 .ToList();
         }
     }
+
+    #endregion
 }

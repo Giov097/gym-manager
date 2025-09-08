@@ -1,11 +1,19 @@
 using GymManager_BE;
+using GymManager_SEC;
 
 namespace GymManager.Forms;
 
 public partial class CreateUserForm : Form
 {
-    private const string? ErrorCaption = "Error";
     public User? CreatedUser { get; private set; }
+
+    private readonly EncryptionUtils _encryptionUtils = new();
+
+    #region Constants
+
+    private const string? ErrorCaption = "Error";
+
+    #endregion
 
     public CreateUserForm()
     {
@@ -74,7 +82,7 @@ public partial class CreateUserForm : Form
             Email = txtEmail.Text,
             FirstName = txtFirstName.Text,
             LastName = txtLastName.Text,
-            Password = txtPassword.Text,
+            Password = _encryptionUtils.EncryptString(txtPassword.Text),
             UserRoles = selectedRoles
         };
         DialogResult = DialogResult.OK;

@@ -100,43 +100,6 @@ public class PaymentMapper : IMapper<Payment, long>
             .ContinueWith(_ => true);
     }
 
-
-    private static Payment BuildPayment(DataRow row)
-    {
-        return row["payment_method"].ToString() switch
-        {
-            "Card" => new CardPayment
-            {
-                Id = (long)row["id"],
-                PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
-                Amount = (decimal)row["amount"],
-                Status = (string)row["status"],
-                Brand =
-                    row["card_brand"] != DBNull.Value ? (string)row["card_brand"] : string.Empty,
-                LastFourDigits = row["card_last4"] != DBNull.Value
-                    ? int.Parse((string)row["card_last4"])
-                    : 0
-            },
-            "Cash" => new CashPayment
-            {
-                Id = (long)row["id"],
-                PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
-                Amount = (decimal)row["amount"],
-                Status = (string)row["status"],
-                ReceiptNumber = row["receipt_number"] != DBNull.Value
-                    ? (string)row["receipt_number"]
-                    : string.Empty
-            },
-            _ => new Payment
-            {
-                Id = (long)row["id"],
-                PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
-                Amount = (decimal)row["amount"],
-                Status = (string)row["status"]
-            }
-        };
-    }
-
     public Task<List<Payment>> Search(DateOnly from, DateOnly to, long userId)
     {
         if (from == null && to == null && userId == 0)
@@ -178,4 +141,44 @@ public class PaymentMapper : IMapper<Payment, long>
                 return payments;
             });
     }
+
+    #region BuildUtils
+
+    private static Payment BuildPayment(DataRow row)
+    {
+        return row["payment_method"].ToString() switch
+        {
+            "Card" => new CardPayment
+            {
+                Id = (long)row["id"],
+                PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
+                Amount = (decimal)row["amount"],
+                Status = (string)row["status"],
+                Brand =
+                    row["card_brand"] != DBNull.Value ? (string)row["card_brand"] : string.Empty,
+                LastFourDigits = row["card_last4"] != DBNull.Value
+                    ? int.Parse((string)row["card_last4"])
+                    : 0
+            },
+            "Cash" => new CashPayment
+            {
+                Id = (long)row["id"],
+                PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
+                Amount = (decimal)row["amount"],
+                Status = (string)row["status"],
+                ReceiptNumber = row["receipt_number"] != DBNull.Value
+                    ? (string)row["receipt_number"]
+                    : string.Empty
+            },
+            _ => new Payment
+            {
+                Id = (long)row["id"],
+                PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
+                Amount = (decimal)row["amount"],
+                Status = (string)row["status"]
+            }
+        };
+    }
+
+    #endregion
 }

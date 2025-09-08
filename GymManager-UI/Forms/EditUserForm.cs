@@ -1,12 +1,15 @@
 // GymManager-UI/Forms/EditUserForm.cs
 
 using GymManager_BE;
+using GymManager_SEC;
 
 namespace GymManager.Forms;
 
 public partial class EditUserForm : Form
 {
     public User EditedUser { get; private set; }
+
+    private readonly EncryptionUtils _encryptionUtils = new();
 
     public EditUserForm(User user)
     {
@@ -79,7 +82,7 @@ public partial class EditUserForm : Form
         var changeForm = new ChangePasswordForm();
         if (changeForm.ShowDialog() == DialogResult.OK)
         {
-            EditedUser.Password = changeForm.NewPassword!;
+            EditedUser.Password = _encryptionUtils.EncryptString(changeForm.NewPassword!);
         }
     }
 }

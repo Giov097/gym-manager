@@ -1,4 +1,5 @@
 using GymManager_BLL.Impl;
+using GymManager_SEC;
 
 namespace GymManager.Forms;
 
@@ -9,6 +10,8 @@ using GymManager_BLL;
 public partial class LoginForm : Form
 {
     private readonly IUserService _userService;
+
+    private readonly EncryptionUtils _encryptionUtils = new();
 
     public LoginForm()
     {
@@ -26,7 +29,7 @@ public partial class LoginForm : Form
         try
         {
             var username = _txtUsername.Text;
-            var password = _txtPassword.Text;
+            var password = _encryptionUtils.EncryptString(_txtPassword.Text);
             var user = await _userService.Login(username, password);
             MessageBox.Show("¡Login exitoso!");
             SessionManager.CurrentUser = user;

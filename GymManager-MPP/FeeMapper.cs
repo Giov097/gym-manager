@@ -71,7 +71,6 @@ public class FeeMapper : IMapper<Fee, long>
             });
     }
 
-
     public Task<List<Fee>> GetAll()
     {
         const string query = """
@@ -146,6 +145,8 @@ public class FeeMapper : IMapper<Fee, long>
         };
     }
 
+    #region BuildUtils
+
     private static Payment BuildPayment(DataRow row)
     {
         return row[PaymentMethod].ToString() switch
@@ -199,4 +200,6 @@ public class FeeMapper : IMapper<Fee, long>
             }
         };
     }
+
+    #endregion
 }

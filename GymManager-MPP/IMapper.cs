@@ -6,7 +6,7 @@
 /// </summary>
 /// <typeparam name="T">The type of the objects managed by this interface.</typeparam>
 /// <typeparam name="TId">The type of the unique identifier for the objects.</typeparam>
-public interface IMapper<T, TId>
+public interface IMapper<T, in TId>
 {
     /// <summary>
     /// Saves an object to the storage.

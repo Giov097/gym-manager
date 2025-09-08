@@ -122,7 +122,6 @@ public partial class EditFeeForm : Form
                 return;
             }
 
-            // Actualiza Fee
             _fee.StartDate = DateOnly.FromDateTime(startDatePicker.Value);
             _fee.EndDate = DateOnly.FromDateTime(endDatePicker.Value);
             _fee.Amount = amt;
@@ -143,7 +142,7 @@ public partial class EditFeeForm : Form
                         ReceiptNumber = receiptTxt.Text
                     };
                 }
-                else // Tarjeta
+                else
                 {
                     payment = new CardPayment
                     {
@@ -157,7 +156,6 @@ public partial class EditFeeForm : Form
                     };
                 }
 
-                // Actualiza o crea el pago
                 if (_fee.Payment == null)
                 {
                     var savedPayment = await _paymentService.AddPayment(payment);
@@ -171,7 +169,6 @@ public partial class EditFeeForm : Form
             }
             else
             {
-                // Si se desmarca, elimina el pago si existe
                 if (_fee.Payment != null)
                 {
                     await _paymentService.DeletePayment(_fee.Payment.Id);

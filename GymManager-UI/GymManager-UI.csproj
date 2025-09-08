@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GymManager-BLL\GymManager-BLL.csproj" />
+    <ProjectReference Include="..\GymManager-SEC\GymManager-SEC.csproj" />
   </ItemGroup>
 
   <ItemGroup>

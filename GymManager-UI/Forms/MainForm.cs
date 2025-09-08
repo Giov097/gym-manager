@@ -26,6 +26,7 @@ public partial class MainForm : Form
     private const string Tarjeta = "Tarjeta";
     private const string Desde = "Desde";
     private const string Hasta = "Hasta";
+    private const string Pagado = "Pagado";
 
     #endregion
 
@@ -628,8 +629,8 @@ public partial class MainForm : Form
             reportGridView.Columns[Hasta]!.HeaderText = Hasta;
         if (reportGridView.Columns[Monto] != null)
             reportGridView.Columns[Monto]!.HeaderText = Monto;
-        if (reportGridView.Columns["Pagado"] != null)
-            reportGridView.Columns["Pagado"]!.HeaderText = "Pagado";
+        if (reportGridView.Columns[Pagado] != null)
+            reportGridView.Columns[Pagado]!.HeaderText = Pagado;
         if (reportGridView.Columns[Estado] != null)
             reportGridView.Columns[Estado]!.HeaderText = Estado;
     }
