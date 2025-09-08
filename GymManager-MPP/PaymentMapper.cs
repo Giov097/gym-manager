@@ -6,7 +6,7 @@ namespace GymManager_MPP;
 
 public class PaymentMapper : IMapper<Payment, long>
 {
-    private readonly IDataAccess _dataAccess = new DataAccess();
+    private readonly IDataAccess _dataAccess = DataAccess.Instance;
 
     public Task<Payment> Create(Payment obj)
     {

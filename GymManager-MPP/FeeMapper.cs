@@ -6,6 +6,8 @@ namespace GymManager_MPP;
 
 public class FeeMapper : IMapper<Fee, long>
 {
+    #region Constants
+
     private const string FeeId = "fee_id";
     private const string PaymentId = "payment_id";
     private const string Status = "status";
@@ -20,7 +22,9 @@ public class FeeMapper : IMapper<Fee, long>
     private const string FeeAmount = "fee_amount";
     private const string UserId = "user_id";
 
-    private readonly IDataAccess _dataAccess = new DataAccess();
+    #endregion
+
+    private readonly IDataAccess _dataAccess = DataAccess.Instance;
 
     public Task<Fee> Create(Fee obj)
     {
@@ -151,53 +155,68 @@ public class FeeMapper : IMapper<Fee, long>
     {
         return row[PaymentMethod].ToString() switch
         {
-            "Card" => new CardPayment
-            {
-                Id = (long)row[PaymentId],
-                FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
-                PaymentDate =
-                    row[PaymentDate] != DBNull.Value
-                        ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
-                        : default,
-                Amount =
-                    row[PaymentAmount] != DBNull.Value ? (decimal)row[PaymentAmount] : 0,
-                Status = row[Status] != DBNull.Value ? (string)row[Status] : string.Empty,
-                Brand =
-                    row[CardBrand] != DBNull.Value
-                        ? (string)row[CardBrand]
-                        : string.Empty,
-                LastFourDigits = row[CardLast4] != DBNull.Value
-                    ? int.Parse((string)row[CardLast4])
-                    : 0
-            },
-            "Cash" => new CashPayment
-            {
-                Id = (long)row[PaymentId],
-                FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
-                PaymentDate =
-                    row[PaymentDate] != DBNull.Value
-                        ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
-                        : default,
-                Amount =
-                    row[PaymentAmount] != DBNull.Value ? (decimal)row[PaymentAmount] : 0,
-                Status = row[Status] != DBNull.Value ? (string)row[Status] : string.Empty,
-                ReceiptNumber = row[ReceiptNumber] != DBNull.Value
-                    ? (string)row[ReceiptNumber]
-                    : string.Empty
-            },
-            _ => new Payment
-            {
-                Id = (long)row[PaymentId],
-                FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
-                PaymentDate =
-                    row[PaymentDate] != DBNull.Value
-                        ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
-                        : default,
-                Amount = row[PaymentAmount] != DBNull.Value
-                    ? (decimal)row[PaymentAmount]
-                    : 0,
-                Status = row[Status] != DBNull.Value ? (string)row[Status] : string.Empty
-            }
+            "Card" => BuildCardPayment(row),
+            "Cash" => BuildCashPayment(row),
+            _ => BuildBasePayment(row)
+        };
+    }
+
+    private static Payment BuildBasePayment(DataRow row)
+    {
+        return new Payment
+        {
+            Id = (long)row[PaymentId],
+            FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
+            PaymentDate =
+                row[PaymentDate] != DBNull.Value
+                    ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
+                    : default,
+            Amount = row[PaymentAmount] != DBNull.Value
+                ? (decimal)row[PaymentAmount]
+                : 0,
+            Status = row[Status] != DBNull.Value ? (string)row[Status] : string.Empty
+        };
+    }
+
+    private static CashPayment BuildCashPayment(DataRow row)
+    {
+        return new CashPayment
+        {
+            Id = (long)row[PaymentId],
+            FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
+            PaymentDate =
+                row[PaymentDate] != DBNull.Value
+                    ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
+                    : default,
+            Amount =
+                row[PaymentAmount] != DBNull.Value ? (decimal)row[PaymentAmount] : 0,
+            Status = row[Status] != DBNull.Value ? (string)row[Status] : string.Empty,
+            ReceiptNumber = row[ReceiptNumber] != DBNull.Value
+                ? (string)row[ReceiptNumber]
+                : string.Empty
+        };
+    }
+
+    private static CardPayment BuildCardPayment(DataRow row)
+    {
+        return new CardPayment
+        {
+            Id = (long)row[PaymentId],
+            FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
+            PaymentDate =
+                row[PaymentDate] != DBNull.Value
+                    ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
+                    : default,
+            Amount =
+                row[PaymentAmount] != DBNull.Value ? (decimal)row[PaymentAmount] : 0,
+            Status = row[Status] != DBNull.Value ? (string)row[Status] : string.Empty,
+            Brand =
+                row[CardBrand] != DBNull.Value
+                    ? (string)row[CardBrand]
+                    : string.Empty,
+            LastFourDigits = row[CardLast4] != DBNull.Value
+                ? int.Parse((string)row[CardLast4])
+                : 0
         };
     }
 

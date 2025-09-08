@@ -6,7 +6,7 @@ namespace GymManager_MPP;
 
 public class UserMapper : IMapper<User, long>
 {
-    private readonly IDataAccess _dataAccess = new DataAccess();
+    private readonly IDataAccess _dataAccess = DataAccess.Instance;
 
     public Task<User> Create(User obj)
     {

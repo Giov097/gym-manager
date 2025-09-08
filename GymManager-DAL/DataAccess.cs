@@ -1,14 +1,30 @@
+using System;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
 namespace GymManager_DAL;
 
-public class DataAccess : IDataAccess
+public sealed class DataAccess : IDataAccess
 {
-    //"Server=localhost,1433;Database=master;User Id=sa;Password=Passw0rd#2025;TrustServerCertificate=True;"
-    private readonly SqlConnection _sqlConnection =
-        new(
-            "Server=localhost,1433;Database=GymManager;User Id=sa;Password=NuevoPass#2025;TrustServerCertificate=True;MultipleActiveResultSets=True");
+    private static readonly Lazy<DataAccess> _instance = new(() => new DataAccess());
+
+    public static IDataAccess Instance => _instance.Value;
+
+    private readonly SqlConnection _sqlConnection;
+
+    private DataAccess()
+    {
+        // Leer el connection string desde una variable de entorno para no tenerlo en código
+        var conn = Environment.GetEnvironmentVariable("GYM_DB_CONNECTION");
+        if (string.IsNullOrWhiteSpace(conn))
+        {
+            // Si preferís, cambiar esto por un valor por defecto o comportamiento distinto
+            throw new InvalidOperationException(
+                "Environment variable GYM_DB_CONNECTION is not set or is empty.");
+        }
+
+        _sqlConnection = new SqlConnection(conn);
+    }
 
     public async Task<DataSet> Read(string query)
     {
