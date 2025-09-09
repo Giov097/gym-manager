@@ -53,8 +53,8 @@ class CardPayment {
 - last4: string
 }
 
-Payment --|> CardPayment
-Payment --|> CashPayment
+Payment <|-- CardPayment
+Payment <|-- CashPayment
 
 
 
