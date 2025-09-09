@@ -29,7 +29,7 @@ public class FeeMapper : IMapper<Fee, long>
     public Task<Fee> Create(Fee obj)
     {
         var query =
-            $"INSERT INTO fees (amount, start_date, end_date, user_id) VALUES ({obj.Amount}, '{obj.StartDate:yyyy-MM-dd}', '{obj.EndDate:yyyy-MM-dd}', '{obj.UserId}'); SELECT SCOPE_IDENTITY();";
+            $"INSERT INTO fees (amount, start_date, end_date, user_id) VALUES ({obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)}, '{obj.StartDate:yyyy-MM-dd}', '{obj.EndDate:yyyy-MM-dd}', '{obj.UserId}'); SELECT SCOPE_IDENTITY();";
         return _dataAccess.Write(query)
             .ContinueWith(newId =>
             {

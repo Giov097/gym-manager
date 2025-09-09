@@ -20,7 +20,7 @@ public class PaymentMapper : IMapper<Payment, long>
              VALUES (
                      '{obj.FeeId}',
                      '{obj.PaymentDate:yyyy-MM-dd}',
-                     {obj.Amount},
+                     {obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)},
                      '{paymentMethod}',
                      '{obj.Status}',
                      '{cardLast4}',

@@ -27,6 +27,11 @@ public class PaymentService : IPaymentService
     public Task<Payment> AddPayment(Payment payment)
     {
         payment.PaymentDate = DateOnly.FromDateTime(DateTime.Now);
+        if (!payment.Validate(out var reason))
+        {
+            throw new InvalidPaymentException(reason);
+        }
+
         return _mapper.Create(payment);
     }
 
@@ -56,6 +61,11 @@ public class PaymentService : IPaymentService
                     break;
                 default:
                     throw new ProcessingException("No se puede cambiar el tipo de pago");
+            }
+
+            if (!payment.Validate(out var reason))
+            {
+                throw new InvalidPaymentException(reason);
             }
 
             return _mapper.Update(taskResult)

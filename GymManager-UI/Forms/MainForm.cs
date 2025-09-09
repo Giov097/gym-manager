@@ -110,7 +110,6 @@ public partial class MainForm : Form
 
         btnGenerateReport.Click += BtnGenerateReport_Click!;
 
-        // Controles para "Historial de pagos de un alumno"
         var userLabel = new Label
             { Text = "Alumno:", Location = new Point(10, 10), AutoSize = true };
         var userComboBox = new ComboBox
@@ -119,7 +118,6 @@ public partial class MainForm : Form
             Size = new Size(250, 23),
             DropDownStyle = ComboBoxStyle.DropDownList
         };
-        // Cargar alumnos al iniciar
         Task.Run(async () =>
         {
             var users = await _userService.GetUsers();
@@ -554,7 +552,7 @@ public partial class MainForm : Form
         var users = await _userService.GetUsers();
         var fees = await _feeService.GetFees();
 
-        var deudas = users.Select(u =>
+        var debts = users.Select(u =>
             {
                 var cuotasUsuario = fees.Where(f => f.UserId == u.Id);
                 var deuda = cuotasUsuario.Sum(f =>
@@ -570,7 +568,7 @@ public partial class MainForm : Form
             .OrderByDescending(d => d.Deuda)
             .ToList();
 
-        reportGridView.DataSource = deudas;
+        reportGridView.DataSource = debts;
         if (reportGridView.Columns[Alumno] != null)
             reportGridView.Columns[Alumno]!.HeaderText = Alumno;
         if (reportGridView.Columns["Deuda"] != null)
@@ -603,7 +601,7 @@ public partial class MainForm : Form
         var users = await _userService.GetUsers();
         var fees = await _feeService.GetFees();
 
-        var cuotasImpagas = fees
+        var unpaidFees = fees
             .Where(f => f.Payment == null || f.Payment.Amount < f.Amount)
             .Select(f =>
             {
@@ -620,7 +618,7 @@ public partial class MainForm : Form
             })
             .ToList();
 
-        reportGridView.DataSource = cuotasImpagas;
+        reportGridView.DataSource = unpaidFees;
         if (reportGridView.Columns[Alumno] != null)
             reportGridView.Columns[Alumno]!.HeaderText = Alumno;
         if (reportGridView.Columns[Desde] != null)
@@ -637,15 +635,15 @@ public partial class MainForm : Form
 
     private async Task HandleUserPaymentHistory()
     {
-        var alumnoComboBox = reportParamsPanel.Controls.OfType<ComboBox>().FirstOrDefault();
-        if (alumnoComboBox == null || alumnoComboBox.SelectedItem == null)
+        var studentComboBox = reportParamsPanel.Controls.OfType<ComboBox>().FirstOrDefault();
+        if (studentComboBox?.SelectedItem == null)
         {
             MessageBox.Show("Seleccione un alumno.", ErrorCaption, MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
             return;
         }
 
-        dynamic selected = alumnoComboBox.SelectedItem;
+        dynamic selected = studentComboBox.SelectedItem;
         long userId = selected.Value;
 
         await _userService.GetUserById(userId);

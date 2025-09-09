@@ -1,4 +1,3 @@
-using System;
 using System.Data;
 using Microsoft.Data.SqlClient;
 
@@ -14,11 +13,9 @@ public sealed class DataAccess : IDataAccess
 
     private DataAccess()
     {
-        // Leer el connection string desde una variable de entorno para no tenerlo en código
         var conn = Environment.GetEnvironmentVariable("GYM_DB_CONNECTION");
         if (string.IsNullOrWhiteSpace(conn))
         {
-            // Si preferís, cambiar esto por un valor por defecto o comportamiento distinto
             throw new InvalidOperationException(
                 "Environment variable GYM_DB_CONNECTION is not set or is empty.");
         }
