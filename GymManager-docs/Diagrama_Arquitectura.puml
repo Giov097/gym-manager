@@ -1,0 +1,45 @@
+@startuml
+title Gym Manager Architecture
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam shadowing true
+skinparam classFontSize 15
+skinparam classFontName "Roboto"
+
+package UI as "User Interface" {
+}
+
+package BLL as "Business Logic Layer" {
+}
+
+package SEC as "Security" {
+}
+
+package BE as "Business Entities" {
+}
+
+package MPP as "Mapping" {
+}
+
+package DAL as "Data Access Layer" {
+}
+
+package "Database"{
+
+ database "GymManagerDB" as DB {
+    [users]
+    [roles]
+    [fees]
+    [payments]
+    [user_roles]
+}
+
+UI --> BLL
+UI --> SEC
+BLL --> BE
+BLL --> MPP
+MPP --> DAL
+MPP --> BE
+DAL --> Database
+
+@enduml

@@ -1,0 +1,66 @@
+@startuml Gym Manager
+title Gym Manager
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam shadowing true
+skinparam classFontSize 15
+skinparam classFontName "Roboto"
+
+
+class User {
+    - id: long
+    - dni: long
+    - firstName: string
+    - lastName: string
+    - email: string
+    - password: string
+    - birthDate: Date
+}
+
+enum Role {
+    STUDENT
+    TRAINER
+    ADMIN
+}
+
+class Fee {
+    - id: long
+    - startDate: Date
+    - endDate: Date
+    - amount: double
+}
+
+class Payment {
+    - id: long
+    - date: Date
+    - amount: float
+    - status: string
+}
+
+abstract class Payment {
+- id: long
+- date: Date
+- amount: float
+- status: string
+}
+
+class CashPayment {
+- receiptNumber: string
+}
+
+class CardPayment {
+- brand: string
+- last4: string
+}
+
+Payment --|> CardPayment
+Payment --|> CashPayment
+
+
+
+User "*" o--- "1..*" Role : has
+User "1" *--- "0..*" Fee : pays
+Fee "1" o-- "1" Payment : has
+
+
+@enduml
