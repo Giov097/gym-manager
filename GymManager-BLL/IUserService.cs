@@ -51,4 +51,11 @@ public interface IUserService
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <remarks>This method updates the user with the specified ID.</remarks>
     Task UpdateUser(long id, User user);
+
+    /// <summary>
+    /// Retrieves a user associated with a specific fee ID.
+    /// </summary>
+    /// <param name="feeId">The unique identifier of the fee.</param>
+    /// <returns>A <see cref="User"/> object representing the user associated with the specified
+    Task<User> GetUserByFeeId(long feeId);
 }

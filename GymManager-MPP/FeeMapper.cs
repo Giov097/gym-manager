@@ -26,10 +26,16 @@ public class FeeMapper : IMapper<Fee, long>
 
     private readonly IDataAccess _dataAccess = DataAccess.Instance;
 
+
     public Task<Fee> Create(Fee obj)
     {
+      throw new NotImplementedException();
+    }
+
+    public Task<Fee> Create(Fee obj, long userId)
+    {
         var query =
-            $"INSERT INTO fees (amount, start_date, end_date, user_id) VALUES ({obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)}, '{obj.StartDate:yyyy-MM-dd}', '{obj.EndDate:yyyy-MM-dd}', '{obj.UserId}'); SELECT SCOPE_IDENTITY();";
+            $"INSERT INTO fees (amount, start_date, end_date, user_id) VALUES ({obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)}, '{obj.StartDate:yyyy-MM-dd}', '{obj.EndDate:yyyy-MM-dd}', '{userId}'); SELECT SCOPE_IDENTITY();";
         return _dataAccess.Write(query)
             .ContinueWith(newId =>
             {
@@ -119,8 +125,7 @@ public class FeeMapper : IMapper<Fee, long>
              UPDATE fees
              SET amount = {obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)},
                  start_date = '{obj.StartDate:yyyy-MM-dd}',
-                 end_date = '{obj.EndDate:yyyy-MM-dd}',
-                 user_id = {obj.UserId}
+                 end_date = '{obj.EndDate:yyyy-MM-dd}'
              WHERE id = {obj.Id};
              """;
         return _dataAccess.Write(query)
@@ -142,7 +147,7 @@ public class FeeMapper : IMapper<Fee, long>
             StartDate = DateOnly.FromDateTime((DateTime)row[StartDate]),
             EndDate = DateOnly.FromDateTime((DateTime)row[EndDate]),
             Amount = (decimal)row[FeeAmount],
-            UserId = (long)row[UserId],
+            // UserId = (long)row[UserId],
             Payment = (row[PaymentId] == DBNull.Value
                 ? null
                 : BuildPayment(row))!
@@ -166,7 +171,7 @@ public class FeeMapper : IMapper<Fee, long>
         return new Payment
         {
             Id = (long)row[PaymentId],
-            FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
+            // FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
             PaymentDate =
                 row[PaymentDate] != DBNull.Value
                     ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
@@ -183,7 +188,7 @@ public class FeeMapper : IMapper<Fee, long>
         return new CashPayment
         {
             Id = (long)row[PaymentId],
-            FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
+            // FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
             PaymentDate =
                 row[PaymentDate] != DBNull.Value
                     ? DateOnly.FromDateTime((DateTime)row[PaymentDate])
@@ -202,7 +207,7 @@ public class FeeMapper : IMapper<Fee, long>
         return new CardPayment
         {
             Id = (long)row[PaymentId],
-            FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
+            // FeeId = row[FeeId] != DBNull.Value ? (long)row[FeeId] : 0,
             PaymentDate =
                 row[PaymentDate] != DBNull.Value
                     ? DateOnly.FromDateTime((DateTime)row[PaymentDate])

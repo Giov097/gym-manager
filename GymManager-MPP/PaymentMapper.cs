@@ -10,6 +10,11 @@ public class PaymentMapper : IMapper<Payment, long>
 
     public Task<Payment> Create(Payment obj)
     {
+        throw new NotImplementedException();
+    }
+
+    public Task<Payment> Create(Payment obj, long feeId)
+    {
         var paymentMethod = obj.GetType() == typeof(CardPayment) ? "Card" : "Cash";
         var cardLast4 = obj is CardPayment card ? card.LastFourDigits.ToString() : "NULL";
         var cardBrand = obj is CardPayment card2 ? card2.Brand : "NULL";
@@ -18,7 +23,7 @@ public class PaymentMapper : IMapper<Payment, long>
             $"""
              INSERT INTO payments (fee_id, payment_date, amount, payment_method, status, card_last4, card_brand, receipt_number) 
              VALUES (
-                     '{obj.FeeId}',
+                     '{feeId}',
                      '{obj.PaymentDate:yyyy-MM-dd}',
                      {obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)},
                      '{paymentMethod}',

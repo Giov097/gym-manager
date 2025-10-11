@@ -1,5 +1,6 @@
 using GymManager_BE;
 using GymManager_BLL;
+using GymManager_BLL.Impl;
 
 namespace GymManager.Forms;
 
@@ -9,7 +10,7 @@ public partial class MainForm : Form
 
     private readonly IUserService _userService;
     private readonly IFeeService _feeService;
-    private readonly IPaymentService _paymentService;
+    private readonly PaymentService _paymentService;
 
     #endregion
 
@@ -31,7 +32,7 @@ public partial class MainForm : Form
     #endregion
 
     public MainForm(IUserService userService, IFeeService feeService,
-        IPaymentService paymentService)
+        PaymentService paymentService)
     {
         _userService = userService;
         _feeService = feeService;
@@ -145,14 +146,16 @@ public partial class MainForm : Form
         reportParamsPanel.Controls.Add(yearComboBox);
 
         // Controles para "Pagos por rango de fechas"
-        var rangeFromLabel = new Label { Text = "Desde:", Location = new Point(10, 10), AutoSize = true };
+        var rangeFromLabel = new Label
+            { Text = "Desde:", Location = new Point(10, 10), AutoSize = true };
         var rangeFromDatePicker = new DateTimePicker
         {
             Location = new Point(70, 10),
             Size = new Size(120, 23),
             Format = DateTimePickerFormat.Short
         };
-        var rangeToLabel = new Label { Text = "Hasta:", Location = new Point(210, 10), AutoSize = true };
+        var rangeToLabel = new Label
+            { Text = "Hasta:", Location = new Point(210, 10), AutoSize = true };
         var rangeToDatePicker = new DateTimePicker
         {
             Location = new Point(260, 10),
@@ -254,8 +257,7 @@ public partial class MainForm : Form
             f.EndDate,
             f.Amount,
             PaymentStatus = f.Payment?.Status,
-            ViewUser = "👁️",
-            f.UserId
+            ViewUser = "👁️"
         }).ToList();
 
         // Personalizar columnas de cuotas
@@ -269,7 +271,6 @@ public partial class MainForm : Form
         feesGridView.Columns["Amount"]!.Width = 80;
         feesGridView.Columns["ViewUser"]!.HeaderText = "Usuario";
         feesGridView.Columns["ViewUser"]!.Width = 80;
-        feesGridView.Columns["UserId"]!.Visible = false;
         feesGridView.Columns["PaymentStatus"]!.HeaderText = "Estado Pago";
         feesGridView.Columns["PaymentStatus"]!.Width = 100;
     }
@@ -304,8 +305,8 @@ public partial class MainForm : Form
             if (e is { RowIndex: >= 0, ColumnIndex: >= 0 } &&
                 feesGridView.Columns[e.ColumnIndex].Name == "ViewUser")
             {
-                var userId = (long)feesGridView.Rows[e.RowIndex].Cells["UserId"].Value;
-                var user = await _userService.GetUserById(userId);
+                var feeId = (long)feesGridView.Rows[e.RowIndex].Cells["Id"].Value;
+                var user = await _userService.GetUserByFeeId(feeId);
 
                 var userForm = new UserDetailsForm(user);
                 userForm.ShowDialog();
@@ -550,12 +551,10 @@ public partial class MainForm : Form
     private async Task HandleUsersWithMostDebt()
     {
         var users = await _userService.GetUsers();
-        var fees = await _feeService.GetFees();
 
         var debts = users.Select(u =>
             {
-                var cuotasUsuario = fees.Where(f => f.UserId == u.Id);
-                var deuda = cuotasUsuario.Sum(f =>
+                var deuda = u.Fees.Sum(f =>
                     f.Payment == null ? f.Amount : Math.Max(0, f.Amount - f.Payment.Amount)
                 );
                 return new
@@ -599,22 +598,21 @@ public partial class MainForm : Form
     private async Task HandleUnpaidFees()
     {
         var users = await _userService.GetUsers();
-        var fees = await _feeService.GetFees();
 
-        var unpaidFees = fees
-            .Where(f => f.Payment == null || f.Payment.Amount < f.Amount)
-            .Select(f =>
+        var unpaidFees = users
+            .SelectMany(user =>
             {
-                var user = users.FirstOrDefault(u => u.Id == f.UserId);
-                return new
+                var fees = user.Fees.Where(f => f.Payment != null && f.Payment.Amount < f.Amount)
+                    .ToList();
+                return fees.Select(f => new
                 {
-                    Alumno = user != null ? $"{user.FirstName} {user.LastName}" : $"ID {f.UserId}",
+                    Alumno = $"{user.FirstName} {user.LastName}",
                     Desde = f.StartDate,
                     Hasta = f.EndDate,
                     Monto = f.Amount,
                     Pagado = f.Payment?.Amount ?? 0,
                     Estado = f.Payment == null ? "Impaga" : "Parcial"
-                };
+                }).ToList();
             })
             .ToList();
 

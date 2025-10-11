@@ -24,7 +24,7 @@ public interface IFeeService
     /// <param name="to">The end date of the range.</param>
     /// <param name="userId">The ID of the user for whom fees are being retrieved.</param>
     /// <returns>A task that represents the asynchronous operation, containing a list of fees.</returns>
-    Task<List<Fee>> SearchFees(DateOnly from, DateOnly to, long userId);
+    Task<List<Fee>> SearchFees(DateOnly? from, DateOnly? to, long? userId);
 
     /// <summary>
     /// Retrieves a fee by its unique identifier.

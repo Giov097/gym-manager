@@ -13,7 +13,7 @@ public class FeeService : IFeeService
         return _mapper.GetAll();
     }
 
-    public Task<List<Fee>> SearchFees(DateOnly from, DateOnly to, long userId)
+    public Task<List<Fee>> SearchFees(DateOnly? from, DateOnly? to, long? userId)
     {
         return _mapper.GetAll();
     }

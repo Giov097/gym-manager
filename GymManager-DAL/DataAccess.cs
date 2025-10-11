@@ -10,6 +10,7 @@ public sealed class DataAccess : IDataAccess
     public static IDataAccess Instance => _instance.Value;
 
     private readonly SqlConnection _sqlConnection;
+    private readonly ILogger _logger;
 
     private DataAccess()
     {
@@ -21,21 +22,32 @@ public sealed class DataAccess : IDataAccess
         }
 
         _sqlConnection = new SqlConnection(conn);
+
+        var factory = LoggerFactory.Create(builder => builder.AddConsole());
+        _logger = factory.CreateLogger("DataAccess");
     }
 
     public async Task<DataSet> Read(string query)
     {
-        if (_sqlConnection.State == ConnectionState.Closed)
+        try
         {
-            await _sqlConnection.OpenAsync();
+            if (_sqlConnection.State == ConnectionState.Closed)
+            {
+                await _sqlConnection.OpenAsync();
+            }
+
+            var dataSet = new DataSet();
+            await using var command = new SqlCommand(query, _sqlConnection);
+            using var adapter = new SqlDataAdapter(command);
+            adapter.Fill(dataSet);
+
+            return dataSet;
         }
-
-        var dataSet = new DataSet();
-        await using var command = new SqlCommand(query, _sqlConnection);
-        using var adapter = new SqlDataAdapter(command);
-        adapter.Fill(dataSet);
-
-        return dataSet;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al leer de la base de datos: {Message}", ex.Message);
+            throw new DatabaseException("Error al leer de la base de datos.", ex);
+        }
     }
 
     public async Task<object?> Write(string query)
@@ -45,24 +57,39 @@ public sealed class DataAccess : IDataAccess
             await _sqlConnection.OpenAsync();
         }
 
+        var transaction =
+            await Task.Run(() =>
+                _sqlConnection.BeginTransaction()
+            );
+
         await using var command = new SqlCommand(query, _sqlConnection);
-        return await command.ExecuteScalarAsync();
+        command.Transaction = transaction;
+        try
+        {
+            var result = await command.ExecuteScalarAsync();
+            await Task.Run(() => transaction.Commit());
+            return result;
+        }
+        catch (Exception ex)
+        {
+            await Task.Run(() => transaction.Rollback());
+            _logger.LogError(ex, "Error al escribir en la base de datos: {Message}", ex.Message);
+            throw new DatabaseException("Error al escribir en la base de datos.", ex);
+        }
     }
 
     public async Task<bool> TestConnectionAsync()
     {
-        using var factory = LoggerFactory.Create(builder => builder.AddConsole());
-        var logger = factory.CreateLogger("Program");
         try
         {
             await _sqlConnection.OpenAsync();
             await _sqlConnection.CloseAsync();
-            logger.LogInformation("Connection to the database was successful.");
+            _logger.LogInformation("Connection to the database was successful.");
             return true;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to connect to the database: {Message}", ex.Message);
+            _logger.LogError(ex, "Failed to connect to the database: {Message}", ex.Message);
             return false;
         }
     }

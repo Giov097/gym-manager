@@ -4,7 +4,7 @@ public class Payment : IEntity<long>
 {
     public long Id { get; set; }
 
-    public long FeeId { get; set; }
+    // public long FeeId { get; set; } //TODO: quitar
 
     public DateOnly PaymentDate { get; set; }
 

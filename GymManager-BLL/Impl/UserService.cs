@@ -62,4 +62,10 @@ public class UserService : IUserService
             return _mapper.Update(existingUser.Result);
         });
     }
+
+    public Task<User> GetUserByFeeId(long feeId)
+    {
+        return _mapper.GetByFeeId(feeId).ContinueWith(user =>
+            user.Result ?? throw new UserNotFoundException());
+    }
 }

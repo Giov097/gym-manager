@@ -1,3 +1,5 @@
+using GymManager_BLL.Impl;
+
 namespace GymManager.Forms;
 
 using GymManager_BE;
@@ -7,10 +9,10 @@ public partial class RegisterFeeForm : Form
 {
     private readonly IUserService _userService;
     private readonly IFeeService _feeService;
-    private readonly IPaymentService _paymentService;
+    private readonly PaymentService _paymentService;
 
     public RegisterFeeForm(IUserService userService, IFeeService feeService,
-        IPaymentService paymentService)
+        PaymentService paymentService)
     {
         _userService = userService;
         _feeService = feeService;
@@ -92,8 +94,7 @@ public partial class RegisterFeeForm : Form
             {
                 StartDate = DateOnly.FromDateTime(startDatePicker.Value),
                 EndDate = DateOnly.FromDateTime(endDatePicker.Value),
-                Amount = amt,
-                UserId = (long)userCombo.SelectedValue
+                Amount = amt
             };
 
             if (paymentCheck.Checked)
@@ -122,8 +123,7 @@ public partial class RegisterFeeForm : Form
                 }
 
                 var savedFee = await _feeService.AddFee(fee);
-                payment.FeeId = savedFee.Id;
-                await _paymentService.AddPayment(payment);
+                await _paymentService.AddPayment(payment, savedFee.Id);
             }
             else
             {

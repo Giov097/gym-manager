@@ -35,7 +35,6 @@ public partial class EditFeeForm : Form
             userCombo.DataSource = users;
             userCombo.DisplayMember = "FirstName";
             userCombo.ValueMember = "Id";
-            userCombo.SelectedValue = _fee.UserId;
         }
         catch (Exception e)
         {
@@ -125,7 +124,6 @@ public partial class EditFeeForm : Form
             _fee.StartDate = DateOnly.FromDateTime(startDatePicker.Value);
             _fee.EndDate = DateOnly.FromDateTime(endDatePicker.Value);
             _fee.Amount = amt;
-            _fee.UserId = (long)userCombo.SelectedValue;
 
             if (paymentCheck.Checked)
             {
@@ -135,7 +133,6 @@ public partial class EditFeeForm : Form
                     payment = new CashPayment
                     {
                         Id = _fee.Payment?.Id ?? 0,
-                        FeeId = _fee.Id,
                         PaymentDate = DateOnly.FromDateTime(paymentDatePicker.Value),
                         Amount = decimal.TryParse(paymentAmountTxt.Text, out var pay) ? pay : 0,
                         Status = "Pagado",
@@ -147,7 +144,6 @@ public partial class EditFeeForm : Form
                     payment = new CardPayment
                     {
                         Id = _fee.Payment?.Id ?? 0,
-                        FeeId = _fee.Id,
                         PaymentDate = DateOnly.FromDateTime(paymentDatePicker.Value),
                         Amount = decimal.TryParse(paymentAmountTxt.Text, out var pay) ? pay : 0,
                         Status = "Pagado",

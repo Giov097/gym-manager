@@ -4,7 +4,7 @@ using GymManager_MPP;
 
 namespace GymManager_BLL.Impl;
 
-public class PaymentService : IPaymentService
+public class PaymentService : IPaymentService //TODO: dividir por tipo de pago
 {
     private readonly PaymentMapper _mapper = new();
 
@@ -26,13 +26,18 @@ public class PaymentService : IPaymentService
 
     public Task<Payment> AddPayment(Payment payment)
     {
+        throw new NotImplementedException();
+    }
+
+    public Task<Payment> AddPayment(Payment payment, long feeId)
+    {
         payment.PaymentDate = DateOnly.FromDateTime(DateTime.Now);
         if (!payment.Validate(out var reason))
         {
             throw new InvalidPaymentException(reason);
         }
 
-        return _mapper.Create(payment);
+        return _mapper.Create(payment, feeId);
     }
 
     public Task<Payment> UpdatePayment(long paymentId, Payment payment)

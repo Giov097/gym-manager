@@ -34,24 +34,33 @@ public class UserMapper : IMapper<User, long>
     public Task<User?> GetById(long id)
     {
         var query = $"""
-
-                             SELECT
-                                 u.id,
-                                 u.first_name,
-                                 u.last_name,
-                                 u.email,
-                                 u.password,
-                                 r.role_name,
-                                 f.id AS fee_id,
-                                 f.start_date,
-                                 f.end_date,
-                                 f.amount,
-                                 f.user_id AS fee_user_id
-                             FROM users u
-                             LEFT JOIN user_roles ur ON u.id = ur.user_id
-                             LEFT JOIN roles r ON ur.role_id = r.id
-                             LEFT JOIN fees f ON u.id = f.user_id
-                             WHERE u.id = {id};
+                     SELECT
+                         u.id,
+                         u.first_name,
+                         u.last_name,
+                         u.email,
+                         u.password,
+                         r.role_name,
+                         f.id AS fee_id,
+                         f.start_date,
+                         f.end_date,
+                         f.amount,
+                         f.user_id AS fee_user_id,
+                         p.id as payment_id,
+                         p.amount as payment_amount,
+                         p.payment_date,
+                         p.payment_method,
+                         p.status as payment_status,
+                         p.card_last4,
+                         p.card_brand,
+                         p.receipt_number
+                         FROM users u
+                         LEFT JOIN user_roles ur ON u.id = ur.user_id
+                         LEFT JOIN roles r ON ur.role_id = r.id
+                         LEFT JOIN fees f ON u.id = f.user_id
+                         LEFT JOIN payments p ON
+                         f.id = p.fee_id
+                        WHERE u.id = {id};
                      """;
 
         return _dataAccess.Read(query)
@@ -98,25 +107,62 @@ public class UserMapper : IMapper<User, long>
             });
     }
 
+
+    public Task<User?> GetByFeeId(long feeId)
+    {
+        var query =
+            $"""
+             SELECT u.* from users u 
+             INNER JOIN fees f 
+             ON u.id = f.user_id
+             WHERE f.id = {feeId};
+             """;
+        return _dataAccess.Read(query)
+            .ContinueWith(dataSet =>
+            {
+                if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
+                {
+                    return null;
+                }
+
+                var row = dataSet.Result.Tables[0].Rows[0];
+                return BuildUser(row);
+            });
+    }
+
     public Task<List<User>> GetAll()
     {
         const string query = """
                              SELECT
-                                 u.id AS user_id,
-                                 u.first_name,
-                                 u.last_name,
-                                 u.email,
-                                 u.password,
-                                 r.role_name,
-                                 f.id AS fee_id,
-                                 f.start_date,
-                                 f.end_date,
-                                 f.amount,
-                                 f.user_id AS fee_user_id
-                             FROM users u
-                             LEFT JOIN user_roles ur ON u.id = ur.user_id
-                             LEFT JOIN roles r ON ur.role_id = r.id
-                             LEFT JOIN fees f ON u.id = f.user_id;
+                             	u.id AS user_id,
+                             	u.first_name,
+                             	u.last_name,
+                             	u.email,
+                             	u.password,
+                             	r.role_name,
+                             	f.id AS fee_id,
+                             	f.start_date,
+                             	f.end_date,
+                             	f.amount,
+                             	f.user_id AS fee_user_id,
+                             	p.id as payment_id,
+                             	p.amount as payment_amount,
+                             	p.payment_date,
+                             	p.payment_method,
+                             	p.status as payment_status,
+                             	p.card_last4,
+                             	p.card_brand,
+                             	p.receipt_number
+                             FROM
+                             	users u
+                             LEFT JOIN user_roles ur ON
+                             	u.id = ur.user_id
+                             LEFT JOIN roles r ON
+                             	ur.role_id = r.id
+                             LEFT JOIN fees f ON
+                             	u.id = f.user_id
+                             LEFT JOIN payments p ON
+                             	f.id = p.fee_id;
                              """;
 
         return _dataAccess.Read(query)
@@ -221,10 +267,7 @@ public class UserMapper : IMapper<User, long>
                 ? DateOnly.FromDateTime((DateTime)row["end_date"])
                 : default,
             Amount = row["amount"] != DBNull.Value ? (decimal)row["amount"] : 0,
-            Payment = null,
-            UserId = row["fee_user_id"] != DBNull.Value
-                ? (long)row["fee_user_id"]
-                : userId
+            Payment = MapPayment(row)
         };
         user.Fees = user.Fees.Append(fee).ToList();
     }
@@ -238,6 +281,42 @@ public class UserMapper : IMapper<User, long>
             user.UserRoles = user.UserRoles.Append(Enum.Parse<UserRole>(roleName))
                 .ToList();
         }
+    }
+
+    private static Payment MapPayment(DataRow row)
+    {
+        return row["payment_method"].ToString() switch
+        {
+            "Card" => new CardPayment
+            {
+                Id = (long)row["payment_id"],
+                PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
+                Amount = (decimal)row["payment_amount"],
+                Status = (string)row["payment_status"],
+                Brand =
+                    row["card_brand"] != DBNull.Value ? (string)row["card_brand"] : string.Empty,
+                LastFourDigits = row["card_last4"] != DBNull.Value
+                    ? int.Parse((string)row["card_last4"])
+                    : 0
+            },
+            "Cash" => new CashPayment
+            {
+                Id = (long)row["payment_id"],
+                PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
+                Amount = (decimal)row["payment_amount"],
+                Status = (string)row["payment_status"],
+                ReceiptNumber = row["receipt_number"] != DBNull.Value
+                    ? (string)row["receipt_number"]
+                    : string.Empty
+            },
+            _ => new Payment
+            {
+                Id = (long)row["id"],
+                PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
+                Amount = (decimal)row["payment_amount"],
+                Status = (string)row["payment_status"]
+            }
+        };
     }
 
     #endregion
