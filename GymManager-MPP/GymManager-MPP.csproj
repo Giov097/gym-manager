@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\GymManager-BE\GymManager-BE.csproj" />
     <ProjectReference Include="..\GymManager-DAL\GymManager-DAL.csproj" />
+    <ProjectReference Include="..\GymManager-DDAL\GymManager-DDAL.csproj" />
   </ItemGroup>
 
 </Project>

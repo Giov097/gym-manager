@@ -14,7 +14,7 @@ internal static class Program
         // To customize application configuration such as set high DPI settings or default font,
         // see https://aka.ms/applicationconfiguration.
         ApplicationConfiguration.Initialize();
-        var dataAccess = DataAccess.Instance;
+        var dataAccess = new DataAccessConnected();
         var connectionSuccessful = dataAccess.TestConnectionAsync();
         if (!connectionSuccessful.Result)
         {

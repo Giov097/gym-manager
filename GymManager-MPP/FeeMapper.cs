@@ -24,19 +24,19 @@ public class FeeMapper : IMapper<Fee, long>
 
     #endregion
 
-    private readonly IDataAccess _dataAccess = DataAccess.Instance;
+    private readonly IDataAccess _dataAccessDisconnected = new DataAccessConnected();
 
 
     public Task<Fee> Create(Fee obj)
     {
-      throw new NotImplementedException();
+        throw new NotImplementedException();
     }
 
     public Task<Fee> Create(Fee obj, long userId)
     {
         var query =
             $"INSERT INTO fees (amount, start_date, end_date, user_id) VALUES ({obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)}, '{obj.StartDate:yyyy-MM-dd}', '{obj.EndDate:yyyy-MM-dd}', '{userId}'); SELECT SCOPE_IDENTITY();";
-        return _dataAccess.Write(query)
+        return _dataAccessDisconnected.Write(query)
             .ContinueWith(newId =>
             {
                 obj.Id = decimal.ToInt64((decimal)newId.Result!);
@@ -68,7 +68,7 @@ public class FeeMapper : IMapper<Fee, long>
              	f.id = p.fee_id
              WHERE f.id = '{id}';
              """;
-        return _dataAccess.Read(query)
+        return _dataAccessDisconnected.Read(query)
             .ContinueWith(dataSet =>
             {
                 if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
@@ -103,7 +103,7 @@ public class FeeMapper : IMapper<Fee, long>
                              FULL OUTER JOIN payments p ON
                              	f.id = p.fee_id;
                              """;
-        return _dataAccess.Read(query)
+        return _dataAccessDisconnected.Read(query)
             .ContinueWith(dataSet =>
             {
                 var fees = new List<Fee>();
@@ -128,14 +128,14 @@ public class FeeMapper : IMapper<Fee, long>
                  end_date = '{obj.EndDate:yyyy-MM-dd}'
              WHERE id = {obj.Id};
              """;
-        return _dataAccess.Write(query)
+        return _dataAccessDisconnected.Write(query)
             .ContinueWith(result => result.Status == TaskStatus.RanToCompletion);
     }
 
     public Task<bool> Delete(long id)
     {
         var query = $"DELETE FROM fees WHERE id = {id};";
-        return _dataAccess.Write(query)
+        return _dataAccessDisconnected.Write(query)
             .ContinueWith(_ => true);
     }
 

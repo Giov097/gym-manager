@@ -1,12 +1,15 @@
 using System.Data;
 using GymManager_BE;
 using GymManager_DAL;
+using GymManager_DDAL;
 
 namespace GymManager_MPP;
 
 public class UserMapper : IMapper<User, long>
 {
-    private readonly IDataAccess _dataAccess = DataAccess.Instance;
+    private readonly IDataAccess _dataAccess = new DataAccessConnected();
+    private readonly IDisconnectedDataAccess _disconnectedDataAccess = DataAccessDisconnected.Instance;
+
 
     public Task<User> Create(User obj)
     {
@@ -18,7 +21,7 @@ public class UserMapper : IMapper<User, long>
                 obj.Id = decimal.ToInt64((decimal)newId.Result!);
                 var findRolesQuery =
                     $"SELECT * FROM roles WHERE role_name IN ('{string.Join("','", obj.UserRoles.Select(r => r.ToString()))}');";
-                var rolesDataSet = _dataAccess.Read(findRolesQuery).Result;
+                var rolesDataSet = _disconnectedDataAccess.Read(findRolesQuery).Result;
 
                 foreach (DataRow row in rolesDataSet.Tables[0].Rows)
                 {
@@ -63,7 +66,7 @@ public class UserMapper : IMapper<User, long>
                         WHERE u.id = {id};
                      """;
 
-        return _dataAccess.Read(query)
+        return _disconnectedDataAccess.Read(query)
             .ContinueWith(dataSet =>
             {
                 if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
@@ -94,7 +97,7 @@ public class UserMapper : IMapper<User, long>
     {
         var query =
             $"SELECT * FROM [GymManager].[dbo].[users] WHERE email = '{email}';";
-        return _dataAccess.Read(query)
+        return _disconnectedDataAccess.Read(query)
             .ContinueWith(dataSet =>
             {
                 if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
@@ -117,7 +120,7 @@ public class UserMapper : IMapper<User, long>
              ON u.id = f.user_id
              WHERE f.id = {feeId};
              """;
-        return _dataAccess.Read(query)
+        return _disconnectedDataAccess.Read(query)
             .ContinueWith(dataSet =>
             {
                 if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
@@ -165,7 +168,7 @@ public class UserMapper : IMapper<User, long>
                              	f.id = p.fee_id;
                              """;
 
-        return _dataAccess.Read(query)
+        return _disconnectedDataAccess.Read(query)
             .ContinueWith(dataSet =>
             {
                 var usersDict = new Dictionary<long, User>();

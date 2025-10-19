@@ -1,24 +1,28 @@
+using GymManager_DAL;
+using Microsoft.Extensions.Logging;
+
+namespace GymManager_DDAL;
+
 using System.Data;
 using Microsoft.Data.SqlClient;
 
-namespace GymManager_DAL;
-
-public sealed class DataAccess : IDataAccess
+public sealed class DataAccessDisconnected : IDisconnectedDataAccess
 {
-    private static readonly Lazy<DataAccess> _instance = new(() => new DataAccess());
+    private static readonly Lazy<DataAccessDisconnected> _instance =
+        new(() => new DataAccessDisconnected());
 
-    public static IDataAccess Instance => _instance.Value;
+    public static IDisconnectedDataAccess Instance => _instance.Value;
 
     private readonly SqlConnection _sqlConnection;
     private readonly ILogger _logger;
 
-    private DataAccess()
+    private DataAccessDisconnected()
     {
         var conn = Environment.GetEnvironmentVariable("GYM_DB_CONNECTION");
         if (string.IsNullOrWhiteSpace(conn))
         {
             throw new InvalidOperationException(
-                "Environment variable GYM_DB_CONNECTION is not set or is empty.");
+                "Environment variable CHATBOTS_DB_CONNECTION is not set or is empty.");
         }
 
         _sqlConnection = new SqlConnection(conn);
@@ -50,31 +54,27 @@ public sealed class DataAccess : IDataAccess
         }
     }
 
-    public async Task<object?> Write(string query)
+    public async Task<int> Write(DataSet dataSet)
     {
-        if (_sqlConnection.State == ConnectionState.Closed)
-        {
-            await _sqlConnection.OpenAsync();
-        }
-
-        var transaction =
-            await Task.Run(() =>
-                _sqlConnection.BeginTransaction()
-            );
-
-        await using var command = new SqlCommand(query, _sqlConnection);
-        command.Transaction = transaction;
         try
         {
-            var result = await command.ExecuteScalarAsync();
-            await Task.Run(() => transaction.Commit());
-            return result;
+            if (_sqlConnection.State == ConnectionState.Closed)
+            {
+                await _sqlConnection.OpenAsync();
+            }
+
+            using var adapter = new SqlDataAdapter();
+
+            var affectedRows = adapter.Update(dataSet.Tables[0]);
+            return affectedRows;
         }
         catch (Exception ex)
         {
-            await Task.Run(() => transaction.Rollback());
-            _logger.LogError(ex, "Error al escribir en la base de datos: {Message}", ex.Message);
-            throw new DatabaseException("Error al escribir en la base de datos.", ex);
+            _logger.LogError(ex,
+                "Error writing to database: {Message}",
+                ex.Message);
+            throw new DatabaseException(
+                "Error al escribir en la base de datos", ex);
         }
     }
 
