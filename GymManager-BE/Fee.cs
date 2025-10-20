@@ -11,6 +11,4 @@ public class Fee : IEntity<long>
     public decimal Amount { get; set; }
 
     public Payment Payment { get; set; }
-
-    // public long UserId { get; set; } //TODO: corregir
 }

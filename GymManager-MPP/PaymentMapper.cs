@@ -41,28 +41,28 @@ public class PaymentMapper : IMapper<Payment, long>
         row[Amount] = obj.Amount;
         row[PaymentMethod] = paymentMethod;
         row[Status] = obj.Status;
-        if (obj is CardPayment card)
+        switch (obj)
         {
-            row[CardLast4] = card.LastFourDigits.ToString();
-            row[CardBrand] = card.Brand ?? (object)DBNull.Value;
-            row[ReceiptNumber] = DBNull.Value;
-        }
-        else if (obj is CashPayment cash)
-        {
-            row[ReceiptNumber] = cash.ReceiptNumber ?? (object)DBNull.Value;
-            row[CardLast4] = DBNull.Value;
-            row[CardBrand] = DBNull.Value;
-        }
-        else
-        {
-            row[CardLast4] = DBNull.Value;
-            row[CardBrand] = DBNull.Value;
-            row[ReceiptNumber] = DBNull.Value;
+            case CardPayment card:
+                row[CardLast4] = card.LastFourDigits.ToString();
+                row[CardBrand] = card.Brand ?? (object)DBNull.Value;
+                row[ReceiptNumber] = DBNull.Value;
+                break;
+            case CashPayment cash:
+                row[ReceiptNumber] = cash.ReceiptNumber ?? (object)DBNull.Value;
+                row[CardLast4] = DBNull.Value;
+                row[CardBrand] = DBNull.Value;
+                break;
+            default:
+                row[CardLast4] = DBNull.Value;
+                row[CardBrand] = DBNull.Value;
+                row[ReceiptNumber] = DBNull.Value;
+                break;
         }
 
         table.Rows.Add(row);
 
-        var affected = await _dataAccess.Write(dataSet);
+        await _dataAccess.Write(dataSet);
 
         var idObj = table.Rows[0]["id"];
         if (idObj != DBNull.Value && idObj != null)
@@ -163,46 +163,44 @@ public class PaymentMapper : IMapper<Payment, long>
         return affected > 0;
     }
 
-    public Task<List<Payment>> Search(DateOnly from, DateOnly to, long userId)
+    public async Task<List<Payment>> Search(DateOnly from, DateOnly to, long userId)
     {
-        if (from == null && to == null && userId == 0)
+        var payments = new List<Payment>();
+        var ds = await _dataAccess.Read("SELECT * FROM payments;", Payments);
+        if (ds.Tables.Count == 0) return payments;
+
+        var table = ds.Tables[0];
+        var filters = new List<string>();
+
+        if (from != default)
         {
-            return GetAll();
+            filters.Add($"payment_date >= #{from:yyyy-MM-dd}#");
         }
 
-        var conditions = new List<string>();
-        if (from != null)
+        if (to != default)
         {
-            conditions.Add($"payment_date >= '{from:yyyy-MM-dd}'");
-        }
-
-        if (to != null)
-        {
-            conditions.Add($"payment_date <= '{to:yyyy-MM-dd}'");
+            filters.Add($"payment_date <= #{to:yyyy-MM-dd}#");
         }
 
         if (userId != 0)
         {
-            conditions.Add($"fee_id IN (SELECT id FROM fees WHERE user_id = {userId})");
+            var feesDs =
+                await _dataAccess.Read($"SELECT id FROM fees WHERE user_id = {userId};", "fees");
+            if (feesDs.Tables.Count == 0 || feesDs.Tables[0].Rows.Count == 0) return payments;
+
+            var ids = feesDs.Tables[0].Rows.Cast<DataRow>()
+                .Select(r => r["id"].ToString())
+                .ToList();
+
+            filters.Add($"fee_id IN ({string.Join(",", ids)})");
         }
 
-        var whereClause = conditions.Count > 0
-            ? "WHERE " + string.Join(" AND ", conditions)
-            : string.Empty;
-        var query = $"SELECT * FROM payments {whereClause};";
-        return _dataAccess.Read(query, Payments)
-            .ContinueWith(dataSet =>
-            {
-                var payments = new List<Payment>();
-                if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
-                {
-                    return payments;
-                }
+        var filterExpr = filters.Count > 0 ? string.Join(" AND ", filters) : string.Empty;
+        var rows = string.IsNullOrEmpty(filterExpr) ? table.Select() : table.Select(filterExpr);
 
-                payments.AddRange(from DataRow row in dataSet.Result.Tables[0].Rows
-                    select BuildPayment(row));
-                return payments;
-            });
+        payments.AddRange(rows.Select(BuildPayment));
+
+        return payments;
     }
 
     #region BuildUtils

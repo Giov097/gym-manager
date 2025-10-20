@@ -44,7 +44,6 @@ public sealed class DataAccessDisconnected : IDisconnectedDataAccess
             await using var command = new SqlCommand(query, _sqlConnection);
             using var adapter = new SqlDataAdapter(command);
 
-            // Llenar el DataSet y asignar el nombre de la tabla correctamente
             adapter.Fill(dataSet, tableName);
 
             return dataSet;

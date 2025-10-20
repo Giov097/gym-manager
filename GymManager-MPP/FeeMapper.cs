@@ -1,4 +1,5 @@
 using System.Data;
+using Microsoft.Data.SqlClient;
 using GymManager_BE;
 using GymManager_DAL;
 
@@ -20,12 +21,10 @@ public class FeeMapper : IMapper<Fee, long>
     private const string StartDate = "start_date";
     private const string EndDate = "end_date";
     private const string FeeAmount = "fee_amount";
-    private const string UserId = "user_id";
 
     #endregion
 
-    private readonly IDataAccess _dataAccessDisconnected = new DataAccessConnected();
-
+    private readonly IDataAccess _dataAccessConnected = new DataAccessConnected();
 
     public Task<Fee> Create(Fee obj)
     {
@@ -34,41 +33,31 @@ public class FeeMapper : IMapper<Fee, long>
 
     public Task<Fee> Create(Fee obj, long userId)
     {
-        var query =
-            $"INSERT INTO fees (amount, start_date, end_date, user_id) VALUES ({obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)}, '{obj.StartDate:yyyy-MM-dd}', '{obj.EndDate:yyyy-MM-dd}', '{userId}'); SELECT SCOPE_IDENTITY();";
-        return _dataAccessDisconnected.Write(query)
+        var parameters = new[]
+        {
+            new SqlParameter("@Amount", obj.Amount),
+            new SqlParameter("@StartDate",
+                new DateTime(obj.StartDate.Year, obj.StartDate.Month, obj.StartDate.Day, 0, 0, 0,
+                    DateTimeKind.Local)),
+            new SqlParameter("@EndDate",
+                new DateTime(obj.EndDate.Year, obj.EndDate.Month, obj.EndDate.Day, 0, 0, 0,
+                    DateTimeKind.Local)),
+            new SqlParameter("@UserId", userId)
+        };
+
+        return _dataAccessConnected.WriteProcedure("sp_CreateFee", parameters)
             .ContinueWith(newId =>
             {
-                obj.Id = decimal.ToInt64((decimal)newId.Result!);
+                if (newId.Exception != null) throw newId.Exception;
+                obj.Id = Convert.ToInt64(newId.Result!);
                 return obj;
             });
     }
 
     public Task<Fee?> GetById(long id)
     {
-        var query =
-            $"""
-             SELECT
-             	f.id as 'fee_id',
-             	f.start_date,
-             	f.end_date,
-             	f.amount as 'fee_amount',
-             	f.user_id,
-             	p.id as 'payment_id',
-             	p.amount as 'payment_amount',
-             	p.payment_date,
-             	p.payment_method,
-             	p.status,
-             	p.card_last4,
-             	p.card_brand,
-             	p.receipt_number
-             FROM
-             	fees f
-             FULL OUTER JOIN payments p ON
-             	f.id = p.fee_id
-             WHERE f.id = '{id}';
-             """;
-        return _dataAccessDisconnected.Read(query)
+        var parameters = new[] { new SqlParameter("@Id", id) };
+        return _dataAccessConnected.ReadProcedure("sp_GetFeeById", parameters)
             .ContinueWith(dataSet =>
             {
                 if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
@@ -83,27 +72,7 @@ public class FeeMapper : IMapper<Fee, long>
 
     public Task<List<Fee>> GetAll()
     {
-        const string query = """
-                             SELECT
-                             	f.id as 'fee_id',
-                             	f.start_date,
-                             	f.end_date,
-                             	f.amount as 'fee_amount',
-                             	f.user_id,
-                             	p.id as 'payment_id',
-                             	p.amount as 'payment_amount',
-                             	p.payment_date,
-                             	p.payment_method,
-                             	p.status,
-                             	p.card_last4,
-                                p.card_brand,
-                                p.receipt_number
-                             FROM
-                             	fees f
-                             FULL OUTER JOIN payments p ON
-                             	f.id = p.fee_id;
-                             """;
-        return _dataAccessDisconnected.Read(query)
+        return _dataAccessConnected.ReadProcedure("sp_GetAllFees")
             .ContinueWith(dataSet =>
             {
                 var fees = new List<Fee>();
@@ -120,23 +89,35 @@ public class FeeMapper : IMapper<Fee, long>
 
     public Task<bool> Update(Fee obj)
     {
-        var query =
-            $"""
-             UPDATE fees
-             SET amount = {obj.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)},
-                 start_date = '{obj.StartDate:yyyy-MM-dd}',
-                 end_date = '{obj.EndDate:yyyy-MM-dd}'
-             WHERE id = {obj.Id};
-             """;
-        return _dataAccessDisconnected.Write(query)
-            .ContinueWith(result => result.Status == TaskStatus.RanToCompletion);
+        var parameters = new[]
+        {
+            new SqlParameter("@Id", obj.Id),
+            new SqlParameter("@Amount", obj.Amount),
+            new SqlParameter("@StartDate",
+                new DateTime(obj.StartDate.Year, obj.StartDate.Month, obj.StartDate.Day, 0, 0, 0,
+                    DateTimeKind.Local)),
+            new SqlParameter("@EndDate",
+                new DateTime(obj.EndDate.Year, obj.EndDate.Month, obj.EndDate.Day, 0, 0, 0,
+                    DateTimeKind.Local))
+        };
+
+        return _dataAccessConnected.WriteProcedure("sp_UpdateFee", parameters)
+            .ContinueWith(result =>
+            {
+                if (result.Exception != null) throw result.Exception;
+                return result.Result != null && Convert.ToInt32(result.Result) > 0;
+            });
     }
 
     public Task<bool> Delete(long id)
     {
-        var query = $"DELETE FROM fees WHERE id = {id};";
-        return _dataAccessDisconnected.Write(query)
-            .ContinueWith(_ => true);
+        var parameters = new[] { new SqlParameter("@Id", id) };
+        return _dataAccessConnected.WriteProcedure("sp_DeleteFee", parameters)
+            .ContinueWith(result =>
+            {
+                if (result.Exception != null) throw result.Exception;
+                return result.Result != null && Convert.ToInt32(result.Result) > 0;
+            });
     }
 
     private static Fee BuildFee(DataRow row)
@@ -147,7 +128,6 @@ public class FeeMapper : IMapper<Fee, long>
             StartDate = DateOnly.FromDateTime((DateTime)row[StartDate]),
             EndDate = DateOnly.FromDateTime((DateTime)row[EndDate]),
             Amount = (decimal)row[FeeAmount],
-            // UserId = (long)row[UserId],
             Payment = (row[PaymentId] == DBNull.Value
                 ? null
                 : BuildPayment(row))!
