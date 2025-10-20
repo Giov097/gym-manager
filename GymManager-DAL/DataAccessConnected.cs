@@ -61,6 +61,74 @@ public sealed class DataAccessConnected : IDataAccess
         }
     }
 
+    public async Task<DataSet> ReadProcedure(string procedureName,
+        IEnumerable<SqlParameter>? parameters = null)
+    {
+        var dataSet = new DataSet();
+        try
+        {
+            var dataTable = new DataTable();
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+            await using var command = new SqlCommand(procedureName, connection);
+            command.CommandType = CommandType.StoredProcedure;
+
+            if (parameters != null)
+            {
+                foreach (var p in parameters)
+                {
+                    command.Parameters.Add(p);
+                }
+            }
+
+            await using var reader = await command.ExecuteReaderAsync();
+            dataTable.Load(reader);
+
+            dataSet.Tables.Add(dataTable);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al leer stored procedure '{Procedure}': {Message}",
+                procedureName, ex.Message);
+            throw new DatabaseException("Error al leer de la base de datos (stored procedure).",
+                ex);
+        }
+
+        return dataSet;
+    }
+
+    public async Task<object?> WriteProcedure(string procedureName,
+        IEnumerable<SqlParameter>? parameters = null)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+        await using var transaction = await Task.Run(() => connection.BeginTransaction());
+        await using var command = new SqlCommand(procedureName, connection, transaction);
+        command.CommandType = CommandType.StoredProcedure;
+        try
+        {
+            if (parameters != null)
+            {
+                foreach (var p in parameters)
+                {
+                    command.Parameters.Add(p);
+                }
+            }
+
+            var result = await command.ExecuteScalarAsync();
+            await Task.Run(() => transaction.Commit());
+            return result;
+        }
+        catch (Exception ex)
+        {
+            await Task.Run(() => transaction.Rollback());
+            _logger.LogError(ex, "Error al ejecutar stored procedure '{Procedure}': {Message}",
+                procedureName, ex.Message);
+            throw new DatabaseException("Error al escribir en la base de datos (stored procedure).",
+                ex);
+        }
+    }
+
     public async Task<bool> TestConnectionAsync()
     {
         try

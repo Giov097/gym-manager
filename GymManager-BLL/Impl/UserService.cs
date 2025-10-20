@@ -54,6 +54,7 @@ public class UserService : IUserService
             existingUser.Result.Email = user.Email;
             existingUser.Result.FirstName = user.FirstName;
             existingUser.Result.LastName = user.LastName;
+            existingUser.Result.UserRoles = user.UserRoles;
             if (!user.Password.Equals(existingUser.Result.Password))
             {
                 existingUser.Result.Password = user.Password;

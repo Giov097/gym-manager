@@ -1,238 +1,212 @@
 using System.Data;
+using Microsoft.Data.SqlClient;
 using GymManager_BE;
 using GymManager_DAL;
-using GymManager_DDAL;
 
 namespace GymManager_MPP;
 
 public class UserMapper : IMapper<User, long>
 {
     private readonly IDataAccess _dataAccess = new DataAccessConnected();
-    private readonly IDisconnectedDataAccess _disconnectedDataAccess = DataAccessDisconnected.Instance;
 
 
-    public Task<User> Create(User obj)
+    public async Task<User> Create(User obj)
     {
-        var query =
-            $"INSERT INTO users (first_name, last_name, email, password) VALUES ('{obj.FirstName}', '{obj.LastName}', '{obj.Email}', '{obj.Password}'); SELECT SCOPE_IDENTITY();";
-        return _dataAccess.Write(query)
-            .ContinueWith(newId =>
+        var pFirst = new SqlParameter("@FirstName", SqlDbType.NVarChar, 100)
+            { Value = obj.FirstName };
+        var pLast = new SqlParameter("@LastName", SqlDbType.NVarChar, 100) { Value = obj.LastName };
+        var pEmail = new SqlParameter("@Email", SqlDbType.NVarChar, 255) { Value = obj.Email };
+        var pPassword = new SqlParameter("@Password", SqlDbType.NVarChar, 255)
+            { Value = obj.Password };
+        var pNewId = new SqlParameter("@NewId", SqlDbType.BigInt)
+            { Direction = ParameterDirection.Output };
+
+        await _dataAccess.WriteProcedure("dbo.usp_CreateUser", [
+            pFirst, pLast, pEmail, pPassword, pNewId
+        ]);
+
+        obj.Id = Convert.ToInt64(pNewId.Value);
+
+        var namesTable = new DataTable();
+        namesTable.Columns.Add("Value", typeof(string));
+        foreach (var r in obj.UserRoles.Select(x => x.ToString()))
+        {
+            namesTable.Rows.Add(r);
+        }
+
+        var pNames = new SqlParameter("@Names", SqlDbType.Structured)
+        {
+            TypeName = "dbo.StringList",
+            Value = namesTable
+        };
+
+        var rolesDataSet = await _dataAccess.ReadProcedure("dbo.usp_GetRolesByNames", [pNames]);
+
+        var roleIdsTable = new DataTable();
+        roleIdsTable.Columns.Add("Value", typeof(int));
+        foreach (DataRow row in rolesDataSet.Tables[0].Rows)
+        {
+            roleIdsTable.Rows.Add((int)row["id"]);
+        }
+
+        if (roleIdsTable.Rows.Count > 0)
+        {
+            var pUserId = new SqlParameter("@UserId", SqlDbType.BigInt) { Value = obj.Id };
+            var pRoleIds = new SqlParameter("@RoleIds", SqlDbType.Structured)
             {
-                obj.Id = decimal.ToInt64((decimal)newId.Result!);
-                var findRolesQuery =
-                    $"SELECT * FROM roles WHERE role_name IN ('{string.Join("','", obj.UserRoles.Select(r => r.ToString()))}');";
-                var rolesDataSet = _disconnectedDataAccess.Read(findRolesQuery).Result;
+                TypeName = "dbo.IntList",
+                Value = roleIdsTable
+            };
 
-                foreach (DataRow row in rolesDataSet.Tables[0].Rows)
-                {
-                    var insertRolesQuery =
-                        $"INSERT INTO user_roles (user_id, role_id) VALUES ({obj.Id}, {row["id"]});";
-                    _dataAccess.Write(insertRolesQuery).Wait();
-                }
+            await _dataAccess.WriteProcedure("dbo.usp_InsertUserRolesBulk", [pUserId, pRoleIds]);
+        }
 
-                return obj;
-            });
+        return obj;
     }
 
-    public Task<User?> GetById(long id)
+    public async Task<User?> GetById(long id)
     {
-        var query = $"""
-                     SELECT
-                         u.id,
-                         u.first_name,
-                         u.last_name,
-                         u.email,
-                         u.password,
-                         r.role_name,
-                         f.id AS fee_id,
-                         f.start_date,
-                         f.end_date,
-                         f.amount,
-                         f.user_id AS fee_user_id,
-                         p.id as payment_id,
-                         p.amount as payment_amount,
-                         p.payment_date,
-                         p.payment_method,
-                         p.status as payment_status,
-                         p.card_last4,
-                         p.card_brand,
-                         p.receipt_number
-                         FROM users u
-                         LEFT JOIN user_roles ur ON u.id = ur.user_id
-                         LEFT JOIN roles r ON ur.role_id = r.id
-                         LEFT JOIN fees f ON u.id = f.user_id
-                         LEFT JOIN payments p ON
-                         f.id = p.fee_id
-                        WHERE u.id = {id};
-                     """;
+        var pId = new SqlParameter("@Id", SqlDbType.BigInt) { Value = id };
+        var dataSet = await _dataAccess.ReadProcedure("dbo.usp_GetUserById", [pId]);
 
-        return _disconnectedDataAccess.Read(query)
-            .ContinueWith(dataSet =>
+        if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count == 0)
+            return null;
+
+        User? user = null;
+
+        foreach (DataRow row in dataSet.Tables[0].Rows)
+        {
+            user ??= BuildUser(row);
+
+            if (row["role_name"] != DBNull.Value)
             {
-                if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
-                    return null;
+                MapRoles(row, user);
+            }
 
-                User? user = null;
+            if (row["fee_id"] != DBNull.Value)
+            {
+                MapFees(row, user);
+            }
+        }
 
-                foreach (DataRow row in dataSet.Result.Tables[0].Rows)
-                {
-                    user ??= BuildUser(row);
-
-                    if (row["role_name"] != DBNull.Value)
-                    {
-                        MapRoles(row, user);
-                    }
-
-                    if (row["fee_id"] != DBNull.Value)
-                    {
-                        MapFees(row, user, id);
-                    }
-                }
-
-                return user;
-            });
+        return user;
     }
 
-    public Task<User?> GetByEmail(string email)
+    public async Task<User?> GetByEmail(string email)
     {
-        var query =
-            $"SELECT * FROM [GymManager].[dbo].[users] WHERE email = '{email}';";
-        return _disconnectedDataAccess.Read(query)
-            .ContinueWith(dataSet =>
-            {
-                if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
-                {
-                    return null;
-                }
+        var pEmail = new SqlParameter("@Email", SqlDbType.NVarChar, 255) { Value = email };
+        var dataSet = await _dataAccess.ReadProcedure("dbo.usp_GetUserByEmail", [pEmail]);
 
-                var row = dataSet.Result.Tables[0].Rows[0];
-                return BuildUser(row);
-            });
+        if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count == 0)
+        {
+            return null;
+        }
+
+        var row = dataSet.Tables[0].Rows[0];
+        return BuildUser(row);
     }
 
 
-    public Task<User?> GetByFeeId(long feeId)
+    public async Task<User?> GetByFeeId(long feeId)
     {
-        var query =
-            $"""
-             SELECT u.* from users u 
-             INNER JOIN fees f 
-             ON u.id = f.user_id
-             WHERE f.id = {feeId};
-             """;
-        return _disconnectedDataAccess.Read(query)
-            .ContinueWith(dataSet =>
-            {
-                if (dataSet.Result.Tables.Count == 0 || dataSet.Result.Tables[0].Rows.Count == 0)
-                {
-                    return null;
-                }
+        var pFeeId = new SqlParameter("@FeeId", SqlDbType.BigInt) { Value = feeId };
+        var dataSet = await _dataAccess.ReadProcedure("dbo.usp_GetUserByFeeId", [pFeeId]);
 
-                var row = dataSet.Result.Tables[0].Rows[0];
-                return BuildUser(row);
-            });
+        if (dataSet.Tables.Count == 0 || dataSet.Tables[0].Rows.Count == 0)
+        {
+            return null;
+        }
+
+        var row = dataSet.Tables[0].Rows[0];
+        return BuildUser(row);
     }
 
-    public Task<List<User>> GetAll()
+    public async Task<List<User>> GetAll()
     {
-        const string query = """
-                             SELECT
-                             	u.id AS user_id,
-                             	u.first_name,
-                             	u.last_name,
-                             	u.email,
-                             	u.password,
-                             	r.role_name,
-                             	f.id AS fee_id,
-                             	f.start_date,
-                             	f.end_date,
-                             	f.amount,
-                             	f.user_id AS fee_user_id,
-                             	p.id as payment_id,
-                             	p.amount as payment_amount,
-                             	p.payment_date,
-                             	p.payment_method,
-                             	p.status as payment_status,
-                             	p.card_last4,
-                             	p.card_brand,
-                             	p.receipt_number
-                             FROM
-                             	users u
-                             LEFT JOIN user_roles ur ON
-                             	u.id = ur.user_id
-                             LEFT JOIN roles r ON
-                             	ur.role_id = r.id
-                             LEFT JOIN fees f ON
-                             	u.id = f.user_id
-                             LEFT JOIN payments p ON
-                             	f.id = p.fee_id;
-                             """;
+        var dataSet = await _dataAccess.ReadProcedure("dbo.usp_GetAllUsers");
 
-        return _disconnectedDataAccess.Read(query)
-            .ContinueWith(dataSet =>
+        var usersDict = new Dictionary<long, User>();
+
+        foreach (DataRow row in dataSet.Tables[0].Rows)
+        {
+            var userId = (long)row["user_id"];
+            if (!usersDict.TryGetValue(userId, out var user))
             {
-                var usersDict = new Dictionary<long, User>();
-
-                foreach (DataRow row in dataSet.Result.Tables[0].Rows)
+                user = new User
                 {
-                    var userId = (long)row["user_id"];
-                    if (!usersDict.TryGetValue(userId, out var user))
-                    {
-                        user = new User
-                        {
-                            Id = userId,
-                            FirstName = row["first_name"].ToString() ?? string.Empty,
-                            LastName = row["last_name"].ToString() ?? string.Empty,
-                            Email = row["email"].ToString() ?? string.Empty,
-                            Password = row["password"].ToString() ?? string.Empty,
-                            UserRoles = new List<UserRole>(),
-                            Fees = new List<Fee>()
-                        };
-                        usersDict[userId] = user;
-                    }
+                    Id = userId,
+                    FirstName = row["first_name"].ToString() ?? string.Empty,
+                    LastName = row["last_name"].ToString() ?? string.Empty,
+                    Email = row["email"].ToString() ?? string.Empty,
+                    Password = row["password"].ToString() ?? string.Empty,
+                    UserRoles = new List<UserRole>(),
+                    Fees = new List<Fee>()
+                };
+                usersDict[userId] = user;
+            }
 
-                    if (row["role_name"] != DBNull.Value)
-                    {
-                        MapRoles(row, user);
-                    }
+            if (row["role_name"] != DBNull.Value)
+            {
+                MapRoles(row, user);
+            }
 
-                    if (row["fee_id"] != DBNull.Value)
-                    {
-                        MapFees(row, user, userId);
-                    }
-                }
+            if (row["fee_id"] != DBNull.Value)
+            {
+                MapFees(row, user);
+            }
+        }
 
-                return usersDict.Values.ToList();
-            });
+        return usersDict.Values.ToList();
     }
 
-    public Task<bool> Delete(long id)
+    public async Task<bool> Delete(long id)
     {
-        var query = $"DELETE FROM users WHERE id = {id};";
-        return _dataAccess.Write(query)
-            .ContinueWith(result => result.Result != null);
+        var pId = new SqlParameter("@Id", SqlDbType.BigInt) { Value = id };
+        var result = await _dataAccess.WriteProcedure("dbo.usp_DeleteUser", [pId]);
+
+        if (result == null) return false;
+        return Convert.ToInt32(result) > 0;
     }
 
-    public Task<bool> Update(User obj)
+    public async Task<bool> Update(User obj)
     {
-        var query =
-            $"UPDATE users SET first_name = '{obj.FirstName}', last_name = '{obj.LastName}', email = '{obj.Email}', password = '{obj.Password}' WHERE id = {obj.Id};";
-        return _dataAccess.Write(query)
-            .ContinueWith(result => result.Result != null)
-            .ContinueWith(updateResult =>
-            {
-                if (!updateResult.Result) return false;
-                var deleteRolesQuery = $"DELETE FROM user_roles WHERE user_id = {obj.Id};";
-                _dataAccess.Write(deleteRolesQuery).Wait();
-                foreach (var role in obj.UserRoles)
-                {
-                    var rolesQuery =
-                        $"INSERT INTO user_roles (user_id, role_id) VALUES ({obj.Id}, {(int)role});";
-                    _dataAccess.Write(rolesQuery).Wait();
-                }
+        var pId = new SqlParameter("@Id", SqlDbType.BigInt) { Value = obj.Id };
+        var pFirst = new SqlParameter("@FirstName", SqlDbType.NVarChar, 100)
+            { Value = obj.FirstName };
+        var pLast = new SqlParameter("@LastName", SqlDbType.NVarChar, 100) { Value = obj.LastName };
+        var pEmail = new SqlParameter("@Email", SqlDbType.NVarChar, 255) { Value = obj.Email };
+        var pPassword = new SqlParameter("@Password", SqlDbType.NVarChar, 255)
+            { Value = obj.Password };
 
-                return true;
-            });
+        var updateResult = await _dataAccess.WriteProcedure("dbo.usp_UpdateUser", [
+            pId, pFirst, pLast, pEmail, pPassword
+        ]);
+
+        if (updateResult == null || Convert.ToInt32(updateResult) == 0) return false;
+
+        var pDeleteUserId = new SqlParameter("@UserId", SqlDbType.BigInt) { Value = obj.Id };
+        await _dataAccess.WriteProcedure("dbo.usp_DeleteUserRoles", [pDeleteUserId]);
+
+        var roleIdsTable = new DataTable();
+        roleIdsTable.Columns.Add("Value", typeof(int));
+        foreach (var role in obj.UserRoles)
+        {
+            roleIdsTable.Rows.Add((int)role + 1);
+        }
+
+        if (roleIdsTable.Rows.Count > 0)
+        {
+            var pUserId = new SqlParameter("@UserId", SqlDbType.BigInt) { Value = obj.Id };
+            var pRoleIds = new SqlParameter("@RoleIds", SqlDbType.Structured)
+            {
+                TypeName = "dbo.IntList",
+                Value = roleIdsTable
+            };
+
+            await _dataAccess.WriteProcedure("dbo.usp_InsertUserRolesBulk", [pUserId, pRoleIds]);
+        }
+
+        return true;
     }
 
     #region BuildUtils
@@ -251,7 +225,7 @@ public class UserMapper : IMapper<User, long>
         };
     }
 
-    private static void MapFees(DataRow row, User user, long userId)
+    private static void MapFees(DataRow row, User user)
     {
         var feeId = (long)row["fee_id"];
 

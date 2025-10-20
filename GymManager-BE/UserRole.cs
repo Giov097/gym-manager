@@ -2,9 +2,9 @@ namespace GymManager_BE;
 
 public enum UserRole
 {
-    Admin,
+    Student,
     Trainer,
-    Student
+    Admin
 }
 
 public static class UserRoleExtensions
