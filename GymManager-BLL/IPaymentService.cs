@@ -37,9 +37,10 @@ public interface IPaymentService
     /// This method allows you to create a new payment record.
     /// </summary>
     /// <param name="payment">The payment object to be added.</param>
+    /// <param name="feeId">Id of the fee to add the payment to</param>
     /// <returns>A task that represents the asynchronous operation, containing the added payment.</returns>
     /// <remarks>This method is used to create a new payment record in the system.</remarks>
-    Task<Payment> AddPayment(Payment payment);
+    Task<Payment> AddPayment(Payment payment, long feeId);
 
     /// <summary>
     /// Updates an existing payment in the system.

@@ -24,11 +24,6 @@ public class PaymentService : IPaymentService //TODO: dividir por tipo de pago
             .ContinueWith(task => task.Result ?? throw new PaymentNotFoundException());
     }
 
-    public Task<Payment> AddPayment(Payment payment)
-    {
-        throw new NotImplementedException();
-    }
-
     public Task<Payment> AddPayment(Payment payment, long feeId)
     {
         payment.PaymentDate = DateOnly.FromDateTime(DateTime.Now);

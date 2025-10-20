@@ -24,9 +24,9 @@ public class FeeService : IFeeService
             .ContinueWith(fee => fee.Result ?? throw new FeeNotFoundException());
     }
 
-    public Task<Fee> AddFee(Fee fee)
+    public Task<Fee> AddFee(Fee fee, long userId)
     {
-        return _mapper.Create(fee);
+        return _mapper.Create(fee, userId);
     }
 
     public Task<Fee> UpdateFee(long id, Fee fee)

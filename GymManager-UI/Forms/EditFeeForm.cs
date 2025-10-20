@@ -154,7 +154,7 @@ public partial class EditFeeForm : Form
 
                 if (_fee.Payment == null)
                 {
-                    var savedPayment = await _paymentService.AddPayment(payment);
+                    var savedPayment = await _paymentService.AddPayment(payment, _fee.Id);
                     _fee.Payment = savedPayment;
                 }
                 else

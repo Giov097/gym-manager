@@ -12,11 +12,12 @@ public interface IDisconnectedDataAccess
     /// Executes a read operation on the database using the provided query.
     /// </summary>
     /// <param name="query">The SQL query to execute for retrieving data.</param>
+    /// <param name="tableName">The name of the table to fill the dataset</param>
     /// <returns>
     /// A task that represents the asynchronous operation.
     /// The task result contains a <see cref="DataSet"/> with the data retrieved from the database.
     /// </returns>
-    Task<DataSet> Read(string query);
+    Task<DataSet> Read(string query, string tableName);
 
     /// <summary>
     /// Executes a write operation on the database using the provided query.

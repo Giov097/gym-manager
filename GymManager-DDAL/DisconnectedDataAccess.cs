@@ -1,4 +1,3 @@
-using GymManager_DAL;
 using Microsoft.Extensions.Logging;
 
 namespace GymManager_DDAL;
@@ -31,19 +30,22 @@ public sealed class DataAccessDisconnected : IDisconnectedDataAccess
         _logger = factory.CreateLogger("DataAccess");
     }
 
-    public async Task<DataSet> Read(string query)
+    public async Task<DataSet> Read(string query, string tableName)
     {
+        if (string.IsNullOrWhiteSpace(tableName))
+            throw new ArgumentException("El nombre de la tabla es obligatorio.", nameof(tableName));
+
         try
         {
             if (_sqlConnection.State == ConnectionState.Closed)
-            {
                 await _sqlConnection.OpenAsync();
-            }
 
             var dataSet = new DataSet();
             await using var command = new SqlCommand(query, _sqlConnection);
             using var adapter = new SqlDataAdapter(command);
-            adapter.Fill(dataSet);
+
+            // Llenar el DataSet y asignar el nombre de la tabla correctamente
+            adapter.Fill(dataSet, tableName);
 
             return dataSet;
         }
@@ -58,25 +60,33 @@ public sealed class DataAccessDisconnected : IDisconnectedDataAccess
     {
         try
         {
+            if (dataSet == null || dataSet.Tables.Count == 0)
+                throw new ArgumentException("El DataSet está vacío.", nameof(dataSet));
+
             if (_sqlConnection.State == ConnectionState.Closed)
-            {
                 await _sqlConnection.OpenAsync();
-            }
 
-            using var adapter = new SqlDataAdapter();
+            var table = dataSet.Tables[0];
+            if (string.IsNullOrWhiteSpace(table.TableName))
+                throw new DatabaseException(
+                    "La tabla del DataSet no tiene TableName. Asigne TableName antes de llamar a Write.",
+                    null!);
 
-            var affectedRows = adapter.Update(dataSet.Tables[0]);
+            using var adapter =
+                new SqlDataAdapter($"SELECT * FROM [{table.TableName}]", _sqlConnection);
+            adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
+            using var builder = new SqlCommandBuilder(adapter);
+
+            var affectedRows = adapter.Update(table);
             return affectedRows;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,
-                "Error writing to database: {Message}",
-                ex.Message);
-            throw new DatabaseException(
-                "Error al escribir en la base de datos", ex);
+            _logger.LogError(ex, "Error writing to database: {Message}", ex.Message);
+            throw new DatabaseException("Error al escribir en la base de datos", ex);
         }
     }
+
 
     public async Task<bool> TestConnectionAsync()
     {

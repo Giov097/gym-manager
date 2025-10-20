@@ -37,8 +37,9 @@ public interface IFeeService
     /// Adds a new fee to the system.
     /// </summary>
     /// <param name="fee">The fee object to be added.</param>
+    /// <param name="userId">The ID of the user associated with the fee.</param>
     /// <returns>A task that represents the asynchronous operation, containing the added fee.</returns>
-    Task<Fee> AddFee(Fee fee);
+    Task<Fee> AddFee(Fee fee, long userId);
 
     /// <summary>
     /// Updates an existing fee in the system.

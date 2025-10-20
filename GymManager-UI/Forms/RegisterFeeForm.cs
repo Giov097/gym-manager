@@ -122,12 +122,13 @@ public partial class RegisterFeeForm : Form
                     };
                 }
 
-                var savedFee = await _feeService.AddFee(fee);
+                var savedFee = await _feeService.AddFee(fee,
+                    userCombo.SelectedValue is long userId ? userId : 0);
                 await _paymentService.AddPayment(payment, savedFee.Id);
             }
             else
             {
-                await _feeService.AddFee(fee);
+                await _feeService.AddFee(fee, userCombo.SelectedValue is long userId ? userId : 0);
             }
 
             DialogResult = DialogResult.OK;

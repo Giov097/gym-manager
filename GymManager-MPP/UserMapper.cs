@@ -2,12 +2,16 @@ using System.Data;
 using Microsoft.Data.SqlClient;
 using GymManager_BE;
 using GymManager_DAL;
+using Microsoft.Extensions.Logging;
 
 namespace GymManager_MPP;
 
 public class UserMapper : IMapper<User, long>
 {
     private readonly IDataAccess _dataAccess = new DataAccessConnected();
+
+    private readonly ILogger _logger = LoggerFactory.Create(builder => builder.AddConsole())
+        .CreateLogger("UserMapper");
 
 
     public async Task<User> Create(User obj)
@@ -123,40 +127,48 @@ public class UserMapper : IMapper<User, long>
 
     public async Task<List<User>> GetAll()
     {
-        var dataSet = await _dataAccess.ReadProcedure("dbo.usp_GetAllUsers");
-
-        var usersDict = new Dictionary<long, User>();
-
-        foreach (DataRow row in dataSet.Tables[0].Rows)
+        try
         {
-            var userId = (long)row["user_id"];
-            if (!usersDict.TryGetValue(userId, out var user))
+            var dataSet = await _dataAccess.ReadProcedure("dbo.usp_GetAllUsers");
+
+            var usersDict = new Dictionary<long, User>();
+
+            foreach (DataRow row in dataSet.Tables[0].Rows)
             {
-                user = new User
+                var userId = (long)row["user_id"];
+                if (!usersDict.TryGetValue(userId, out var user))
                 {
-                    Id = userId,
-                    FirstName = row["first_name"].ToString() ?? string.Empty,
-                    LastName = row["last_name"].ToString() ?? string.Empty,
-                    Email = row["email"].ToString() ?? string.Empty,
-                    Password = row["password"].ToString() ?? string.Empty,
-                    UserRoles = new List<UserRole>(),
-                    Fees = new List<Fee>()
-                };
-                usersDict[userId] = user;
+                    user = new User
+                    {
+                        Id = userId,
+                        FirstName = row["first_name"].ToString() ?? string.Empty,
+                        LastName = row["last_name"].ToString() ?? string.Empty,
+                        Email = row["email"].ToString() ?? string.Empty,
+                        Password = row["password"].ToString() ?? string.Empty,
+                        UserRoles = new List<UserRole>(),
+                        Fees = new List<Fee>()
+                    };
+                    usersDict[userId] = user;
+                }
+
+                if (row["role_name"] != DBNull.Value)
+                {
+                    MapRoles(row, user);
+                }
+
+                if (row["fee_id"] != DBNull.Value)
+                {
+                    MapFees(row, user);
+                }
             }
 
-            if (row["role_name"] != DBNull.Value)
-            {
-                MapRoles(row, user);
-            }
-
-            if (row["fee_id"] != DBNull.Value)
-            {
-                MapFees(row, user);
-            }
+            return usersDict.Values.ToList();
         }
-
-        return usersDict.Values.ToList();
+        catch (Exception ex)
+        {
+            _logger.LogError("Error retrieving all users: {Message} {Ex}", ex.Message, ex);
+            throw;
+        }
     }
 
     public async Task<bool> Delete(long id)
@@ -244,7 +256,7 @@ public class UserMapper : IMapper<User, long>
                 ? DateOnly.FromDateTime((DateTime)row["end_date"])
                 : default,
             Amount = row["amount"] != DBNull.Value ? (decimal)row["amount"] : 0,
-            Payment = MapPayment(row)
+            Payment = MapPayment(row)!
         };
         user.Fees = user.Fees.Append(fee).ToList();
     }
@@ -260,7 +272,7 @@ public class UserMapper : IMapper<User, long>
         }
     }
 
-    private static Payment MapPayment(DataRow row)
+    private static Payment? MapPayment(DataRow row)
     {
         return row["payment_method"].ToString() switch
         {
@@ -286,13 +298,7 @@ public class UserMapper : IMapper<User, long>
                     ? (string)row["receipt_number"]
                     : string.Empty
             },
-            _ => new Payment
-            {
-                Id = (long)row["id"],
-                PaymentDate = DateOnly.FromDateTime((DateTime)row["payment_date"]),
-                Amount = (decimal)row["payment_amount"],
-                Status = (string)row["payment_status"]
-            }
+            _ => null
         };
     }
 
