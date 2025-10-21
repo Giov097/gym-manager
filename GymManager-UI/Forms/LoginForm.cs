@@ -30,10 +30,12 @@ public partial class LoginForm : Form
         {
             var username = _txtUsername.Text;
             var password = _encryptionUtils.EncryptString(_txtPassword.Text);
-            var user = await _userService.Login(username, password); //TODO: pasar objeto User directamente
+            var user =
+                await _userService.Login(username, password); //TODO: pasar objeto User directamente
             MessageBox.Show("¡Login exitoso!");
             SessionManager.CurrentUser = user;
-            var mainForm = new MainForm(new UserService(), new FeeService(), new PaymentService());
+            var mainForm = new MainForm(new UserService(), new XmlUserService(), new FeeService(),
+                new PaymentService());
             mainForm.FormClosed += (_, _) => Close();
             mainForm.Show();
             Hide();

@@ -1,6 +1,7 @@
 using GymManager_BE;
 using GymManager_BLL;
 using GymManager_BLL.Impl;
+using Microsoft.Extensions.Logging;
 
 namespace GymManager.Forms;
 
@@ -9,8 +10,10 @@ public partial class MainForm : Form
     #region Services
 
     private readonly IUserService _userService;
+    private readonly IUserService _xmlUserService;
     private readonly IFeeService _feeService;
     private readonly PaymentService _paymentService;
+    private readonly ILogger _logger;
 
     #endregion
 
@@ -31,12 +34,15 @@ public partial class MainForm : Form
 
     #endregion
 
-    public MainForm(IUserService userService, IFeeService feeService,
+    public MainForm(IUserService userService, IUserService xmlUserService, IFeeService feeService,
         PaymentService paymentService)
     {
+        var factory = LoggerFactory.Create(builder => builder.AddConsole());
+        _logger = factory.CreateLogger("MainForm");
         _userService = userService;
         _feeService = feeService;
         _paymentService = paymentService;
+        _xmlUserService = xmlUserService;
         InitializeComponent();
         greetingLbl.Enabled = true;
         greetingLbl.Visible = true;
@@ -328,7 +334,16 @@ public partial class MainForm : Form
             {
                 var newUser = createForm.CreatedUser;
                 await _userService.CreateUser(newUser!);
-                MessageBox.Show("Usuario modificado con éxito", SuccessCaption,
+                try
+                {
+                    await _xmlUserService.CreateUser(newUser!);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error duplicating user: {Message}", ex.Message);
+                }
+
+                MessageBox.Show("Usuario creado con éxito", SuccessCaption,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 var users = await _userService.GetUsers();
                 FillUsersDataGrid(users);

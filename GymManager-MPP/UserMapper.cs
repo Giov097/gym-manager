@@ -16,56 +16,66 @@ public class UserMapper : IMapper<User, long>
 
     public async Task<User> Create(User obj)
     {
-        var pFirst = new SqlParameter("@FirstName", SqlDbType.NVarChar, 100)
-            { Value = obj.FirstName };
-        var pLast = new SqlParameter("@LastName", SqlDbType.NVarChar, 100) { Value = obj.LastName };
-        var pEmail = new SqlParameter("@Email", SqlDbType.NVarChar, 255) { Value = obj.Email };
-        var pPassword = new SqlParameter("@Password", SqlDbType.NVarChar, 255)
-            { Value = obj.Password };
-        var pNewId = new SqlParameter("@NewId", SqlDbType.BigInt)
-            { Direction = ParameterDirection.Output };
-
-        await _dataAccess.WriteProcedure("dbo.usp_CreateUser", [
-            pFirst, pLast, pEmail, pPassword, pNewId
-        ]);
-
-        obj.Id = Convert.ToInt64(pNewId.Value);
-
-        var namesTable = new DataTable();
-        namesTable.Columns.Add("Value", typeof(string));
-        foreach (var r in obj.UserRoles.Select(x => x.ToString()))
+        try
         {
-            namesTable.Rows.Add(r);
-        }
+            var pFirst = new SqlParameter("@FirstName", SqlDbType.NVarChar, 100)
+                { Value = obj.FirstName };
+            var pLast = new SqlParameter("@LastName", SqlDbType.NVarChar, 100)
+                { Value = obj.LastName };
+            var pEmail = new SqlParameter("@Email", SqlDbType.NVarChar, 255) { Value = obj.Email };
+            var pPassword = new SqlParameter("@Password", SqlDbType.NVarChar, 255)
+                { Value = obj.Password };
+            var pNewId = new SqlParameter("@NewId", SqlDbType.BigInt)
+                { Direction = ParameterDirection.Output };
 
-        var pNames = new SqlParameter("@Names", SqlDbType.Structured)
-        {
-            TypeName = "dbo.StringList",
-            Value = namesTable
-        };
+            await _dataAccess.WriteProcedure("dbo.usp_CreateUser", [
+                pFirst, pLast, pEmail, pPassword, pNewId
+            ]);
 
-        var rolesDataSet = await _dataAccess.ReadProcedure("dbo.usp_GetRolesByNames", [pNames]);
+            obj.Id = (long)pNewId.Value;
 
-        var roleIdsTable = new DataTable();
-        roleIdsTable.Columns.Add("Value", typeof(int));
-        foreach (DataRow row in rolesDataSet.Tables[0].Rows)
-        {
-            roleIdsTable.Rows.Add((int)row["id"]);
-        }
-
-        if (roleIdsTable.Rows.Count > 0)
-        {
-            var pUserId = new SqlParameter("@UserId", SqlDbType.BigInt) { Value = obj.Id };
-            var pRoleIds = new SqlParameter("@RoleIds", SqlDbType.Structured)
+            var namesTable = new DataTable();
+            namesTable.Columns.Add("Value", typeof(string));
+            foreach (var r in obj.UserRoles.Select(x => x.ToString()))
             {
-                TypeName = "dbo.IntList",
-                Value = roleIdsTable
+                namesTable.Rows.Add(r);
+            }
+
+            var pNames = new SqlParameter("@Names", SqlDbType.Structured)
+            {
+                TypeName = "dbo.StringList",
+                Value = namesTable
             };
 
-            await _dataAccess.WriteProcedure("dbo.usp_InsertUserRolesBulk", [pUserId, pRoleIds]);
-        }
+            var rolesDataSet = await _dataAccess.ReadProcedure("dbo.usp_GetRolesByNames", [pNames]);
 
-        return obj;
+            var roleIdsTable = new DataTable();
+            roleIdsTable.Columns.Add("Value", typeof(long));
+            foreach (DataRow row in rolesDataSet.Tables[0].Rows)
+            {
+                roleIdsTable.Rows.Add((long)row["id"]);
+            }
+
+            if (roleIdsTable.Rows.Count > 0)
+            {
+                var pUserId = new SqlParameter("@UserId", SqlDbType.BigInt) { Value = obj.Id };
+                var pRoleIds = new SqlParameter("@RoleIds", SqlDbType.Structured)
+                {
+                    TypeName = "dbo.IntList",
+                    Value = roleIdsTable
+                };
+
+                await _dataAccess.WriteProcedure("dbo.usp_InsertUserRolesBulk",
+                    [pUserId, pRoleIds]);
+            }
+
+            return obj;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error creating user: {Message} {Ex}", ex.Message, ex);
+            throw;
+        }
     }
 
     public async Task<User?> GetById(long id)
