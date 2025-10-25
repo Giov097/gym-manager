@@ -35,7 +35,7 @@ public partial class LoginForm : Form
             MessageBox.Show("¡Login exitoso!");
             SessionManager.CurrentUser = user;
             var mainForm = new MainForm(new UserService(), new XmlUserService(), new FeeService(),
-                new PaymentService());
+                new PaymentService(), new CashPaymentService(), new CardPaymentService());
             mainForm.FormClosed += (_, _) => Close();
             mainForm.Show();
             Hide();

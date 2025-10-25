@@ -50,6 +50,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
     #region Constants
 
     private const string Id = "id";
+    private const string UserId = "UserId";
     private const string Fees = "Fees";
     private const string Fee = "Fee";
     private const string StartDate = "StartDate";
@@ -83,7 +84,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
         var newId = maxId + 1;
         obj.Id = newId;
 
-        root.Add(FeeToXElement(obj));
+        root.Add(FeeToXElement(obj, userId));
         SaveDoc(doc);
         return Task.FromResult(obj);
     }
@@ -153,13 +154,14 @@ public class XmlFeeMapper : IMapper<Fee, long>
         return Task.FromResult(list);
     }
 
-    #region Helpers (XML <-> Domain)
+    #region BuildUtils
 
-    private static XElement FeeToXElement(Fee f)
+    private static XElement FeeToXElement(Fee f, long userId)
     {
         var nodes = new List<object>
         {
             new XAttribute(Id, f.Id),
+            new XElement(UserId, userId),
             new XElement(StartDate,
                 f.StartDate.ToString(DateFormat, CultureInfo.InvariantCulture)),
             new XElement(EndDate, f.EndDate.ToString(DateFormat, CultureInfo.InvariantCulture)),
@@ -239,7 +241,8 @@ public class XmlFeeMapper : IMapper<Fee, long>
                     : 0
             };
         }
-        else if (type.Equals("Cash", StringComparison.OrdinalIgnoreCase))
+
+        if (type.Equals("Cash", StringComparison.OrdinalIgnoreCase))
         {
             return new CashPayment
             {

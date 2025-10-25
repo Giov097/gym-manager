@@ -6,8 +6,12 @@ namespace GymManager.Forms;
 public partial class EditFeeForm : Form
 {
     private readonly IUserService _userService;
+
     private readonly IFeeService _feeService;
+
     private readonly IPaymentService _paymentService;
+    private readonly IPaymentService _cashPaymentService;
+    private readonly IPaymentService _cardPaymentService;
     private readonly Fee _fee;
 
     public EditFeeForm(IUserService userService, IFeeService feeService,
@@ -154,13 +158,31 @@ public partial class EditFeeForm : Form
 
                 if (_fee.Payment == null)
                 {
-                    var savedPayment = await _paymentService.AddPayment(payment, _fee.Id);
-                    _fee.Payment = savedPayment;
+                    var savedPayment = payment switch
+                    {
+                        CashPayment => await _cashPaymentService.AddPayment(payment, _fee.Id),
+                        CardPayment => await _cardPaymentService.AddPayment(payment, _fee.Id),
+                        _ => null
+                    };
+
+                    if (savedPayment != null)
+                    {
+                        _fee.Payment = savedPayment;
+                    }
                 }
                 else
                 {
-                    var savedPayment = await _paymentService.UpdatePayment(payment.Id, payment);
-                    _fee.Payment = savedPayment;
+                    var savedPayment = payment switch
+                    {
+                        CashPayment => await _cashPaymentService.UpdatePayment(payment.Id, payment),
+                        CardPayment => await _cardPaymentService.UpdatePayment(payment.Id, payment),
+                        _ => null
+                    };
+
+                    if (savedPayment != null)
+                    {
+                        _fee.Payment = savedPayment;
+                    }
                 }
             }
             else

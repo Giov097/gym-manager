@@ -9,14 +9,19 @@ public partial class RegisterFeeForm : Form
 {
     private readonly IUserService _userService;
     private readonly IFeeService _feeService;
-    private readonly PaymentService _paymentService;
+    private readonly IPaymentService _paymentService;
+    private readonly IPaymentService _cashPaymentService;
+    private readonly IPaymentService _cardPaymentService;
 
     public RegisterFeeForm(IUserService userService, IFeeService feeService,
-        PaymentService paymentService)
+        IPaymentService paymentService, IPaymentService cashPaymentService,
+        IPaymentService cardPaymentService)
     {
         _userService = userService;
         _feeService = feeService;
         _paymentService = paymentService;
+        _cashPaymentService = cashPaymentService;
+        _cardPaymentService = cardPaymentService;
         InitializeComponent();
         LoadUsers();
         paymentTypeCombo.SelectedIndexChanged += PaymentTypeCombo_SelectedIndexChanged!;
@@ -124,7 +129,17 @@ public partial class RegisterFeeForm : Form
 
                 var savedFee = await _feeService.AddFee(fee,
                     userCombo.SelectedValue is long userId ? userId : 0);
-                await _paymentService.AddPayment(payment, savedFee.Id);
+                switch (payment)
+                {
+                    case CashPayment cashPayment:
+                        await _cashPaymentService.AddPayment(cashPayment, savedFee.Id);
+                        break;
+                    case CardPayment cardPayment:
+                        await _cardPaymentService.AddPayment(cardPayment, savedFee.Id);
+                        break;
+                    default:
+                        throw new InvalidOperationException("Tipo de pago no soportado.");
+                }
             }
             else
             {

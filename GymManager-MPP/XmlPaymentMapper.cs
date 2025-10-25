@@ -200,14 +200,14 @@ public class XmlPaymentMapper : IMapper<Payment, long>
 
             if (feeIds.Count == 0) return Task.FromResult(new List<Payment>());
 
-            elems = elems.Where(e => feeIds.Contains(((long?)e.Element(FeeId)) ?? 0));
+            elems = elems.Where(e => feeIds.Contains((long?)e.Element(FeeId) ?? 0));
         }
 
         payments.AddRange(elems.Select(XElementToPayment));
         return Task.FromResult(payments);
     }
 
-    #region Helpers (XML <-> Domain)
+    #region BuildUtils
 
     private static XElement PaymentToXElement(Payment p, long feeId)
     {

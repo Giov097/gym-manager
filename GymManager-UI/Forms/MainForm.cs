@@ -12,7 +12,9 @@ public partial class MainForm : Form
     private readonly IUserService _userService;
     private readonly IUserService _xmlUserService;
     private readonly IFeeService _feeService;
-    private readonly PaymentService _paymentService;
+    private readonly IPaymentService _paymentService;
+    private readonly IPaymentService _cashPaymentService;
+    private readonly IPaymentService _cardPaymentService;
     private readonly ILogger _logger;
 
     #endregion
@@ -35,13 +37,16 @@ public partial class MainForm : Form
     #endregion
 
     public MainForm(IUserService userService, IUserService xmlUserService, IFeeService feeService,
-        PaymentService paymentService)
+        IPaymentService paymentService, IPaymentService cashPaymentService,
+        IPaymentService cardPaymentService)
     {
         var factory = LoggerFactory.Create(builder => builder.AddConsole());
         _logger = factory.CreateLogger("MainForm");
         _userService = userService;
         _feeService = feeService;
         _paymentService = paymentService;
+        _cashPaymentService = cashPaymentService;
+        _cardPaymentService = cardPaymentService;
         _xmlUserService = xmlUserService;
         InitializeComponent();
         greetingLbl.Enabled = true;
@@ -386,7 +391,8 @@ public partial class MainForm : Form
     {
         try
         {
-            var registerForm = new RegisterFeeForm(_userService, _feeService, _paymentService);
+            var registerForm = new RegisterFeeForm(_userService, _feeService, _paymentService,
+                _cashPaymentService, _cardPaymentService);
             if (registerForm.ShowDialog() == DialogResult.OK)
             {
                 MessageBox.Show("Cuota registrada con éxito", SuccessCaption,
