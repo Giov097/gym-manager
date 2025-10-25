@@ -1,5 +1,6 @@
 using GymManager_BE;
 using GymManager_SEC;
+using GymManager.Controls;
 
 namespace GymManager.Forms;
 
@@ -8,6 +9,7 @@ public partial class CreateUserForm : Form
     public User? CreatedUser { get; private set; }
 
     private readonly EncryptionUtils _encryptionUtils = new();
+    private readonly UserEditorControl _editor = new();
 
     #region Constants
 
@@ -18,6 +20,8 @@ public partial class CreateUserForm : Form
     public CreateUserForm()
     {
         InitializeComponent();
+        _editor.SetBounds(10, 10, _editor.Width, _editor.Height);
+        Controls.Add(_editor);
         btnOk.Click += BtnOk_Click!;
         btnCancel.Click += (_, _) => Close();
         btnShowPassword.MouseDown += (_, _) => txtPassword.UseSystemPasswordChar = false;
@@ -29,62 +33,13 @@ public partial class CreateUserForm : Form
 
     private void BtnOk_Click(object sender, EventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(txtEmail.Text) ||
-            string.IsNullOrWhiteSpace(txtFirstName.Text) ||
-            string.IsNullOrWhiteSpace(txtLastName.Text) ||
-            string.IsNullOrWhiteSpace(txtPassword.Text) ||
-            string.IsNullOrWhiteSpace(txtRepeatPassword.Text))
+        if (!_editor.ValidateInputs(out var error))
         {
-            MessageBox.Show("Todos los campos son obligatorios.", ErrorCaption,
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(error, ErrorCaption, MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 
-        // Validar formato de email
-        try
-        {
-            var addr = new System.Net.Mail.MailAddress(txtEmail.Text);
-            if (addr.Address != txtEmail.Text)
-                throw new FormatException();
-        }
-        catch
-        {
-            MessageBox.Show("El correo ingresado no tiene un formato válido.", ErrorCaption,
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return;
-        }
-
-        if (txtPassword.Text != txtRepeatPassword.Text)
-        {
-            MessageBox.Show("Las contraseñas no coinciden.", ErrorCaption, MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
-            return;
-        }
-
-        if (clbRoles.CheckedItems.Count == 0)
-        {
-            MessageBox.Show("Debe seleccionar al menos un rol.", ErrorCaption, MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
-            return;
-        }
-
-        var selectedRoles = clbRoles.CheckedItems.Cast<string>().Select(r =>
-            r switch
-            {
-                "ADMINISTRADOR" => UserRole.Admin,
-                "ENTRENADOR" => UserRole.Trainer,
-                _ => UserRole.Student
-            }
-        ).ToArray();
-
-        CreatedUser = new User
-        {
-            Email = txtEmail.Text,
-            FirstName = txtFirstName.Text,
-            LastName = txtLastName.Text,
-            Password = _encryptionUtils.EncryptString(txtPassword.Text),
-            UserRoles = selectedRoles
-        };
+        CreatedUser = _editor.BuildUser(_encryptionUtils);
         DialogResult = DialogResult.OK;
         Close();
     }

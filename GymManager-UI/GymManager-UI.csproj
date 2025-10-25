@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -8,7 +8,8 @@
     <AssemblyName>GymManager-UI</AssemblyName>
     <RootNamespace>GymManager-UI</RootNamespace>
     <TargetFramework>net8.0-windows</TargetFramework>
-  </PropertyGroup>
+  <EnableWindowsTargeting>true</EnableWindowsTargeting>
+</PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\GymManager-BLL\GymManager-BLL.csproj" />
@@ -39,6 +40,9 @@
     </Compile>
     <Compile Update="Forms\EditFeeForm.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Controls\UserEditorControl.cs">
+      <SubType>UserControl</SubType>
     </Compile>
   </ItemGroup>
 </Project>
