@@ -4,19 +4,11 @@ namespace GymManager.Forms;
 partial class CreateUserForm
 {
     private System.ComponentModel.IContainer components = null;
-    protected System.Windows.Forms.Label lblEmail;
-    private System.Windows.Forms.TextBox txtEmail;
-    protected System.Windows.Forms.Label lblFirstName;
-    private System.Windows.Forms.TextBox txtFirstName;
-    protected System.Windows.Forms.Label lblLastName;
-    private System.Windows.Forms.TextBox txtLastName;
-    protected System.Windows.Forms.Label lblPassword;
-    private System.Windows.Forms.TextBox txtPassword;
     private System.Windows.Forms.Button btnOk;
     private System.Windows.Forms.Button btnCancel;
-    private System.Windows.Forms.CheckedListBox clbRoles;
-    private System.Windows.Forms.Label lblRepeatPassword;
-    private System.Windows.Forms.TextBox txtRepeatPassword;
+    private System.Windows.Forms.Button btnShowPassword;
+    private System.Windows.Forms.Button btnShowPasswordRepeat;
+    private GymManager.Controls.UserEditorControl _editor;
 
     /// <summary>
     /// Required method for Designer support - do not modify
@@ -24,91 +16,16 @@ partial class CreateUserForm
     /// </summary>
     private void InitializeComponent()
     {
-        lblEmail = new System.Windows.Forms.Label();
-        txtEmail = new System.Windows.Forms.TextBox();
-        lblFirstName = new System.Windows.Forms.Label();
-        txtFirstName = new System.Windows.Forms.TextBox();
-        lblLastName = new System.Windows.Forms.Label();
-        txtLastName = new System.Windows.Forms.TextBox();
-        lblPassword = new System.Windows.Forms.Label();
-        txtPassword = new System.Windows.Forms.TextBox();
         btnOk = new System.Windows.Forms.Button();
         btnCancel = new System.Windows.Forms.Button();
-        clbRoles = new System.Windows.Forms.CheckedListBox();
-        lblRepeatPassword = new System.Windows.Forms.Label();
-        txtRepeatPassword = new System.Windows.Forms.TextBox();
         btnShowPassword = new System.Windows.Forms.Button();
         btnShowPasswordRepeat = new System.Windows.Forms.Button();
+        _editor = new GymManager.Controls.UserEditorControl();
         SuspendLayout();
-        // 
-        // lblEmail
-        // 
-        lblEmail.AutoSize = true;
-        lblEmail.Location = new System.Drawing.Point(20, 20);
-        lblEmail.Name = "lblEmail";
-        lblEmail.Size = new System.Drawing.Size(46, 15);
-        lblEmail.TabIndex = 0;
-        lblEmail.Text = "Correo:";
-        // 
-        // txtEmail
-        // 
-        txtEmail.Location = new System.Drawing.Point(144, 20);
-        txtEmail.Name = "txtEmail";
-        txtEmail.Size = new System.Drawing.Size(180, 23);
-        txtEmail.TabIndex = 1;
-        // 
-        // lblFirstName
-        // 
-        lblFirstName.AutoSize = true;
-        lblFirstName.Location = new System.Drawing.Point(20, 60);
-        lblFirstName.Name = "lblFirstName";
-        lblFirstName.Size = new System.Drawing.Size(54, 15);
-        lblFirstName.TabIndex = 2;
-        lblFirstName.Text = "Nombre:";
-        // 
-        // txtFirstName
-        // 
-        txtFirstName.Location = new System.Drawing.Point(144, 60);
-        txtFirstName.Name = "txtFirstName";
-        txtFirstName.Size = new System.Drawing.Size(180, 23);
-        txtFirstName.TabIndex = 3;
-        // 
-        // lblLastName
-        // 
-        lblLastName.AutoSize = true;
-        lblLastName.Location = new System.Drawing.Point(20, 100);
-        lblLastName.Name = "lblLastName";
-        lblLastName.Size = new System.Drawing.Size(54, 15);
-        lblLastName.TabIndex = 4;
-        lblLastName.Text = "Apellido:";
-        // 
-        // txtLastName
-        // 
-        txtLastName.Location = new System.Drawing.Point(144, 100);
-        txtLastName.Name = "txtLastName";
-        txtLastName.Size = new System.Drawing.Size(180, 23);
-        txtLastName.TabIndex = 5;
-        // 
-        // lblPassword
-        // 
-        lblPassword.AutoSize = true;
-        lblPassword.Location = new System.Drawing.Point(20, 140);
-        lblPassword.Name = "lblPassword";
-        lblPassword.Size = new System.Drawing.Size(70, 15);
-        lblPassword.TabIndex = 6;
-        lblPassword.Text = "Contraseña:";
-        // 
-        // txtPassword
-        // 
-        txtPassword.Location = new System.Drawing.Point(144, 140);
-        txtPassword.Name = "txtPassword";
-        txtPassword.Size = new System.Drawing.Size(180, 23);
-        txtPassword.TabIndex = 7;
-        txtPassword.UseSystemPasswordChar = true;
         // 
         // btnOk
         // 
-        btnOk.Location = new System.Drawing.Point(144, 286);
+        btnOk.Location = new System.Drawing.Point(144, 400);
         btnOk.Name = "btnOk";
         btnOk.Size = new System.Drawing.Size(80, 30);
         btnOk.TabIndex = 8;
@@ -117,81 +34,50 @@ partial class CreateUserForm
         // 
         // btnCancel
         // 
-        btnCancel.Location = new System.Drawing.Point(244, 286);
+        btnCancel.Location = new System.Drawing.Point(244, 400);
         btnCancel.Name = "btnCancel";
         btnCancel.Size = new System.Drawing.Size(80, 30);
         btnCancel.TabIndex = 9;
         btnCancel.Text = "Cancelar";
         btnCancel.UseVisualStyleBackColor = true;
         // 
-        // clbRoles
-        // 
-        clbRoles.Items.AddRange(new object[] { "ADMINISTRADOR", "ENTRENADOR", "ALUMNO" });
-        clbRoles.Location = new System.Drawing.Point(144, 208);
-        clbRoles.Name = "clbRoles";
-        clbRoles.Size = new System.Drawing.Size(180, 58);
-        clbRoles.TabIndex = 10;
-        // 
-        // lblRepeatPassword
-        // 
-        lblRepeatPassword.AutoSize = true;
-        lblRepeatPassword.Location = new System.Drawing.Point(20, 180);
-        lblRepeatPassword.Name = "lblRepeatPassword";
-        lblRepeatPassword.Size = new System.Drawing.Size(108, 15);
-        lblRepeatPassword.TabIndex = 11;
-        lblRepeatPassword.Text = "Repetir contraseña:";
-        // 
-        // txtRepeatPassword
-        // 
-        txtRepeatPassword.Location = new System.Drawing.Point(144, 180);
-        txtRepeatPassword.Name = "txtRepeatPassword";
-        txtRepeatPassword.Size = new System.Drawing.Size(180, 23);
-        txtRepeatPassword.TabIndex = 12;
-        txtRepeatPassword.UseSystemPasswordChar = true;
-        // 
         // btnShowPassword
-        // 
-        btnShowPassword.Location = new System.Drawing.Point(295, 140);
+        //
+        btnShowPassword.Location = new System.Drawing.Point(262, 196);
         btnShowPassword.Name = "btnShowPassword";
         btnShowPassword.Size = new System.Drawing.Size(29, 23);
         btnShowPassword.TabIndex = 13;
         btnShowPassword.Text = "👁️";
         btnShowPassword.UseVisualStyleBackColor = true;
-        // 
+        //
         // btnShowPasswordRepeat
-        // 
-        btnShowPasswordRepeat.Location = new System.Drawing.Point(295, 180);
+        //
+        btnShowPasswordRepeat.Location = new System.Drawing.Point(262, 246);
         btnShowPasswordRepeat.Name = "btnShowPasswordRepeat";
         btnShowPasswordRepeat.Size = new System.Drawing.Size(29, 23);
         btnShowPasswordRepeat.TabIndex = 14;
         btnShowPasswordRepeat.Text = "👁️";
         btnShowPasswordRepeat.UseVisualStyleBackColor = true;
+        //
+        // _editor
+        // 
+        _editor.Location = new System.Drawing.Point(12, 20);
+        _editor.Name = "_editor";
+        _editor.Size = new System.Drawing.Size(240, 370);
+        _editor.TabIndex = 0;
         // 
         // CreateUserForm
         // 
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-        ClientSize = new System.Drawing.Size(350, 356);
-        Controls.Add(btnShowPasswordRepeat);
+        ClientSize = new System.Drawing.Size(350, 460);
+        Controls.Add(_editor);
         Controls.Add(btnShowPassword);
-        Controls.Add(clbRoles);
-        Controls.Add(lblRepeatPassword);
-        Controls.Add(txtRepeatPassword);
-        Controls.Add(lblEmail);
-        Controls.Add(txtEmail);
-        Controls.Add(lblFirstName);
-        Controls.Add(txtFirstName);
-        Controls.Add(lblLastName);
-        Controls.Add(txtLastName);
-        Controls.Add(lblPassword);
-        Controls.Add(txtPassword);
+        Controls.Add(btnShowPasswordRepeat);
         Controls.Add(btnOk);
         Controls.Add(btnCancel);
         Text = "Alta de Usuario";
         ResumeLayout(false);
         PerformLayout();
     }
-
-    private System.Windows.Forms.Button btnShowPassword;
-    private System.Windows.Forms.Button btnShowPasswordRepeat;
 }

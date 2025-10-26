@@ -10,10 +10,9 @@ public interface IUserService
     /// <summary>
     /// Authenticates a user based on their email and password.
     /// </summary>
-    /// <param name="email">The email of the user attempting to log in.</param>
-    /// <param name="password">The password of the user attempting to log in.</param>
+    /// <param name="user">The user to validate containing email and password</param>
     /// <returns>A <see cref="User"/> object representing the authenticated user.</returns>
-    Task<User> Login(string email, string password);
+    Task<User> Login(User user);
 
     /// <summary>
     /// Retrieves a user by their email address.
