@@ -21,10 +21,18 @@ public class XmlUserMapper : IMapper<User, long>
     {
         lock (_fileLock)
         {
-            if (!File.Exists(_filePath))
+            try
             {
-                var doc = new XDocument(new XElement(Users));
-                doc.Save(_filePath);
+                if (!File.Exists(_filePath))
+                {
+                    var doc = new XDocument(new XElement(Users));
+                    doc.Save(_filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[XmlUserMapper] Error en EnsureFile(): {ex}");
+                throw;
             }
         }
     }
@@ -33,7 +41,15 @@ public class XmlUserMapper : IMapper<User, long>
     {
         lock (_fileLock)
         {
-            return XDocument.Load(_filePath);
+            try
+            {
+                return XDocument.Load(_filePath);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[XmlUserMapper] Error en LoadDoc(): {ex}");
+                throw;
+            }
         }
     }
 
@@ -41,7 +57,15 @@ public class XmlUserMapper : IMapper<User, long>
     {
         lock (_fileLock)
         {
-            doc.Save(_filePath);
+            try
+            {
+                doc.Save(_filePath);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[XmlUserMapper] Error en SaveDoc(): {ex}");
+                throw;
+            }
         }
     }
 
@@ -77,122 +101,178 @@ public class XmlUserMapper : IMapper<User, long>
 
     public Task<User> Create(User obj)
     {
-        var doc = LoadDoc();
-        var users = doc.Root ?? new XElement(Users);
+        try
+        {
+            var doc = LoadDoc();
+            var users = doc.Root ?? new XElement(Users);
 
-        var maxId = users.Elements(User)
-            .Select(x => (long?)x.Attribute("id") ?? 0)
-            .DefaultIfEmpty(0)
-            .Max();
-        var newId = maxId + 1;
-        obj.Id = newId;
+            var maxId = users.Elements(User)
+                .Select(x => (long?)x.Attribute("id") ?? 0)
+                .DefaultIfEmpty(0)
+                .Max();
+            var newId = maxId + 1;
+            obj.Id = newId;
 
-        var userElem = new XElement(User,
-            new XAttribute(Id, obj.Id),
-            new XElement(FirstName, obj.FirstName ?? string.Empty),
-            new XElement(LastName, obj.LastName ?? string.Empty),
-            new XElement(Email, obj.Email ?? string.Empty),
-            new XElement(Password, obj.Password ?? string.Empty),
-            new XElement(Roles,
-                (obj.UserRoles ?? [])
-                .Select(r => new XElement(Role, r.ToString()))
-            ),
-            new XElement(Fees,
-                (obj.Fees ?? [])
-                .Select(FeeToXElement)
-            )
-        );
+            var userElem = new XElement(User,
+                new XAttribute(Id, obj.Id),
+                new XElement(FirstName, obj.FirstName ?? string.Empty),
+                new XElement(LastName, obj.LastName ?? string.Empty),
+                new XElement(Email, obj.Email ?? string.Empty),
+                new XElement(Password, obj.Password ?? string.Empty),
+                new XElement(Roles,
+                    (obj.UserRoles ?? new List<UserRole>())
+                    .Select(r => new XElement(Role, r.ToString()))
+                ),
+                new XElement(Fees,
+                    (obj.Fees ?? new List<Fee>())
+                    .Select(FeeToXElement)
+                )
+            );
 
-        users.Add(userElem);
-        SaveDoc(doc);
+            users.Add(userElem);
+            SaveDoc(doc);
 
-        return Task.FromResult(obj);
+            return Task.FromResult(obj);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlUserMapper] Error en Create(...): {ex}");
+            throw;
+        }
     }
 
     public Task<User?> GetById(long id)
     {
-        var doc = LoadDoc();
-        var elem = doc.Root?
-            .Elements(User)
-            .FirstOrDefault(x => (long?)x.Attribute(Id) == id);
+        try
+        {
+            var doc = LoadDoc();
+            var elem = doc.Root?
+                .Elements(User)
+                .FirstOrDefault(x => (long?)x.Attribute(Id) == id);
 
-        if (elem == null) return Task.FromResult<User?>(null);
-        return Task.FromResult<User?>(XElementToUser(elem));
+            if (elem == null) return Task.FromResult<User?>(null);
+            return Task.FromResult<User?>(XElementToUser(elem));
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlUserMapper] Error en GetById({id}): {ex}");
+            throw;
+        }
     }
 
     public Task<User?> GetByEmail(string email)
     {
-        var doc = LoadDoc();
-        var elem = doc.Root?
-            .Elements(User)
-            .FirstOrDefault(x => string.Equals((string?)x.Element(Email) ?? string.Empty, email,
-                StringComparison.OrdinalIgnoreCase));
+        try
+        {
+            var doc = LoadDoc();
+            var elem = doc.Root?
+                .Elements(User)
+                .FirstOrDefault(x => string.Equals((string?)x.Element(Email) ?? string.Empty, email,
+                    StringComparison.OrdinalIgnoreCase));
 
-        if (elem == null) return Task.FromResult<User?>(null);
-        return Task.FromResult<User?>(XElementToUser(elem));
+            if (elem == null) return Task.FromResult<User?>(null);
+            return Task.FromResult<User?>(XElementToUser(elem));
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlUserMapper] Error en GetByEmail({email}): {ex}");
+            throw;
+        }
     }
 
     public Task<User?> GetByFeeId(long feeId)
     {
-        var doc = LoadDoc();
-        var elem = doc.Root?
-            .Elements(User)
-            .FirstOrDefault(u => u.Element(Fees)?
-                .Elements(Fee)
-                .Any(f => (long?)f.Attribute(Id) == feeId) == true);
+        try
+        {
+            var doc = LoadDoc();
+            var elem = doc.Root?
+                .Elements(User)
+                .FirstOrDefault(u => u.Element(Fees)?
+                    .Elements(Fee)
+                    .Any(f => (long?)f.Attribute(Id) == feeId) == true);
 
-        if (elem == null) return Task.FromResult<User?>(null);
-        return Task.FromResult<User?>(XElementToUser(elem));
+            if (elem == null) return Task.FromResult<User?>(null);
+            return Task.FromResult<User?>(XElementToUser(elem));
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlUserMapper] Error en GetByFeeId({feeId}): {ex}");
+            throw;
+        }
     }
 
     public Task<List<User>> GetAll()
     {
-        var doc = LoadDoc();
-        var list = doc.Root?
-            .Elements(User)
-            .Select(XElementToUser)
-            .ToList() ?? [];
-        return Task.FromResult(list);
+        try
+        {
+            var doc = LoadDoc();
+            var list = doc.Root?
+                .Elements(User)
+                .Select(XElementToUser)
+                .ToList() ?? new List<User>();
+            return Task.FromResult(list);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlUserMapper] Error en GetAll(): {ex}");
+            throw;
+        }
     }
 
     public Task<bool> Delete(long id)
     {
-        var doc = LoadDoc();
-        var root = doc.Root;
-        var elem = root?.Elements(User).FirstOrDefault(x => (long?)x.Attribute(Id) == id);
-        if (elem == null) return Task.FromResult(false);
-        elem.Remove();
-        SaveDoc(doc);
-        return Task.FromResult(true);
+        try
+        {
+            var doc = LoadDoc();
+            var root = doc.Root;
+            var elem = root?.Elements(User).FirstOrDefault(x => (long?)x.Attribute(Id) == id);
+            if (elem == null) return Task.FromResult(false);
+            elem.Remove();
+            SaveDoc(doc);
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlUserMapper] Error en Delete({id}): {ex}");
+            throw;
+        }
     }
 
     public Task<bool> Update(User obj)
     {
-        var doc = LoadDoc();
-        var root = doc.Root;
-        var elem = root?.Elements(User).FirstOrDefault(x => (long?)x.Attribute(Id) == obj.Id);
-        if (elem == null) return Task.FromResult(false);
+        try
+        {
+            var doc = LoadDoc();
+            var root = doc.Root;
+            var elem = root?.Elements(User).FirstOrDefault(x => (long?)x.Attribute(Id) == obj.Id);
+            if (elem == null) return Task.FromResult(false);
 
-        elem.SetElementValue(FirstName, obj.FirstName ?? string.Empty);
-        elem.SetElementValue(LastName, obj.LastName ?? string.Empty);
-        elem.SetElementValue(Email, obj.Email ?? string.Empty);
-        elem.SetElementValue(Password, obj.Password ?? string.Empty);
+            elem.SetElementValue(FirstName, obj.FirstName ?? string.Empty);
+            elem.SetElementValue(LastName, obj.LastName ?? string.Empty);
+            elem.SetElementValue(Email, obj.Email ?? string.Empty);
+            elem.SetElementValue(Password, obj.Password ?? string.Empty);
 
-        var rolesElem = elem.Element(Roles);
-        rolesElem?.Remove();
-        elem.Add(new XElement(Roles,
-            (obj.UserRoles ?? []).Select(r =>
-                new XElement(Role, r.ToString()))
-        ));
+            var rolesElem = elem.Element(Roles);
+            rolesElem?.Remove();
+            elem.Add(new XElement(Roles,
+                (obj.UserRoles ?? new List<UserRole>()).Select(r =>
+                    new XElement(Role, r.ToString()))
+            ));
 
-        var feesElem = elem.Element(Fees);
-        feesElem?.Remove();
-        elem.Add(new XElement(Fees,
-            (obj.Fees ?? []).Select(FeeToXElement)
-        ));
+            var feesElem = elem.Element(Fees);
+            feesElem?.Remove();
+            elem.Add(new XElement(Fees,
+                (obj.Fees ?? new List<Fee>()).Select(FeeToXElement)
+            ));
 
-        SaveDoc(doc);
-        return Task.FromResult(true);
+            SaveDoc(doc);
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlUserMapper] Error en Update(Id={obj.Id}): {ex}");
+            throw;
+        }
     }
 
 

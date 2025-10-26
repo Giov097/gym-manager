@@ -1,6 +1,8 @@
 using System.Xml.Linq;
 using System.Globalization;
 using GymManager_BE;
+using System;
+using System.IO;
 
 namespace GymManager_MPP;
 
@@ -21,10 +23,18 @@ public class XmlFeeMapper : IMapper<Fee, long>
     {
         lock (_fileLock)
         {
-            if (!File.Exists(_filePath))
+            try
             {
-                var doc = new XDocument(new XElement("Fees"));
-                doc.Save(_filePath);
+                if (!File.Exists(_filePath))
+                {
+                    var doc = new XDocument(new XElement("Fees"));
+                    doc.Save(_filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[XmlFeeMapper] Error en EnsureFile(): {ex}");
+                throw;
             }
         }
     }
@@ -33,7 +43,15 @@ public class XmlFeeMapper : IMapper<Fee, long>
     {
         lock (_fileLock)
         {
-            return XDocument.Load(_filePath);
+            try
+            {
+                return XDocument.Load(_filePath);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[XmlFeeMapper] Error en LoadDoc(): {ex}");
+                throw;
+            }
         }
     }
 
@@ -41,7 +59,15 @@ public class XmlFeeMapper : IMapper<Fee, long>
     {
         lock (_fileLock)
         {
-            doc.Save(_filePath);
+            try
+            {
+                doc.Save(_filePath);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[XmlFeeMapper] Error en SaveDoc(): {ex}");
+                throw;
+            }
         }
     }
 
@@ -74,84 +100,132 @@ public class XmlFeeMapper : IMapper<Fee, long>
 
     public Task<Fee> Create(Fee obj, long userId)
     {
-        var doc = LoadDoc();
-        var root = doc.Root ?? new XElement(Fees);
+        try
+        {
+            var doc = LoadDoc();
+            var root = doc.Root ?? new XElement(Fees);
 
-        var maxId = root.Elements(Fee)
-            .Select(x => (long?)x.Attribute(Id) ?? 0)
-            .DefaultIfEmpty(0)
-            .Max();
-        var newId = maxId + 1;
-        obj.Id = newId;
+            var maxId = root.Elements(Fee)
+                .Select(x => (long?)x.Attribute(Id) ?? 0)
+                .DefaultIfEmpty(0)
+                .Max();
+            var newId = maxId + 1;
+            obj.Id = newId;
 
-        root.Add(FeeToXElement(obj, userId));
-        SaveDoc(doc);
-        return Task.FromResult(obj);
+            root.Add(FeeToXElement(obj, userId));
+            SaveDoc(doc);
+            return Task.FromResult(obj);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlFeeMapper] Error en Create(...): {ex}");
+            throw;
+        }
     }
 
     public Task<Fee?> GetById(long id)
     {
-        var doc = LoadDoc();
-        var elem = doc.Root?
-            .Elements(Fee)
-            .FirstOrDefault(x => (long?)x.Attribute(Id) == id);
+        try
+        {
+            var doc = LoadDoc();
+            var elem = doc.Root?
+                .Elements(Fee)
+                .FirstOrDefault(x => (long?)x.Attribute(Id) == id);
 
-        if (elem == null) return Task.FromResult<Fee?>(null);
-        return Task.FromResult<Fee?>(XElementToFee(elem));
+            if (elem == null) return Task.FromResult<Fee?>(null);
+            return Task.FromResult<Fee?>(XElementToFee(elem));
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlFeeMapper] Error en GetById({id}): {ex}");
+            throw;
+        }
     }
 
     public Task<List<Fee>> GetAll()
     {
-        var doc = LoadDoc();
-        var list = doc.Root?
-            .Elements(Fee)
-            .Select(XElementToFee)
-            .ToList() ?? [];
-        return Task.FromResult(list);
+        try
+        {
+            var doc = LoadDoc();
+            var list = doc.Root?
+                .Elements(Fee)
+                .Select(XElementToFee)
+                .ToList() ?? [];
+            return Task.FromResult(list);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlFeeMapper] Error en GetAll(): {ex}");
+            throw;
+        }
     }
 
     public Task<bool> Delete(long id)
     {
-        var doc = LoadDoc();
-        var root = doc.Root;
-        var elem = root?.Elements(Fee).FirstOrDefault(x => (long?)x.Attribute(Id) == id);
-        if (elem == null) return Task.FromResult(false);
-        elem.Remove();
-        SaveDoc(doc);
-        return Task.FromResult(true);
+        try
+        {
+            var doc = LoadDoc();
+            var root = doc.Root;
+            var elem = root?.Elements(Fee).FirstOrDefault(x => (long?)x.Attribute(Id) == id);
+            if (elem == null) return Task.FromResult(false);
+            elem.Remove();
+            SaveDoc(doc);
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlFeeMapper] Error en Delete({id}): {ex}");
+            throw;
+        }
     }
 
     public Task<bool> Update(Fee obj)
     {
-        var doc = LoadDoc();
-        var root = doc.Root;
-        var elem = root?.Elements(Fee).FirstOrDefault(x => (long?)x.Attribute(Id) == obj.Id);
-        if (elem == null) return Task.FromResult(false);
+        try
+        {
+            var doc = LoadDoc();
+            var root = doc.Root;
+            var elem = root?.Elements(Fee).FirstOrDefault(x => (long?)x.Attribute(Id) == obj.Id);
+            if (elem == null) return Task.FromResult(false);
 
-        elem.SetAttributeValue(Id, obj.Id);
-        elem.SetElementValue(StartDate,
-            obj.StartDate.ToString(DateFormat, CultureInfo.InvariantCulture));
-        elem.SetElementValue(EndDate,
-            obj.EndDate.ToString(DateFormat, CultureInfo.InvariantCulture));
-        elem.SetElementValue(Amount, obj.Amount.ToString(CultureInfo.InvariantCulture));
+            elem.SetAttributeValue(Id, obj.Id);
+            elem.SetElementValue(StartDate,
+                obj.StartDate.ToString(DateFormat, CultureInfo.InvariantCulture));
+            elem.SetElementValue(EndDate,
+                obj.EndDate.ToString(DateFormat, CultureInfo.InvariantCulture));
+            elem.SetElementValue(Amount, obj.Amount.ToString(CultureInfo.InvariantCulture));
 
-        var paymentElem = elem.Element(Payment);
-        paymentElem?.Remove();
-        elem.Add(PaymentToXElement(obj.Payment));
+            var paymentElem = elem.Element(Payment);
+            paymentElem?.Remove();
+            elem.Add(PaymentToXElement(obj.Payment));
 
-        SaveDoc(doc);
-        return Task.FromResult(true);
+            SaveDoc(doc);
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlFeeMapper] Error en Update(Id={obj.Id}): {ex}");
+            throw;
+        }
     }
 
     public Task<List<Fee>> GetByUserId(long userId)
     {
-        var doc = LoadDoc();
-        var list = doc.Root?
-            .Elements(Fee)
-            .Where(f => ((long?)f.Element("UserId") ?? 0) == userId)
-            .Select(XElementToFee)
-            .ToList() ?? [];
-        return Task.FromResult(list);
+        try
+        {
+            var doc = LoadDoc();
+            var list = doc.Root?
+                .Elements(Fee)
+                .Where(f => ((long?)f.Element("UserId") ?? 0) == userId)
+                .Select(XElementToFee)
+                .ToList() ?? [];
+            return Task.FromResult(list);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlFeeMapper] Error en GetByUserId({userId}): {ex}");
+            throw;
+        }
     }
 
     #region BuildUtils

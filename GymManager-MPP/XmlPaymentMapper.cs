@@ -1,8 +1,6 @@
 using System.Xml.Linq;
 using System.Globalization;
 using GymManager_BE;
-using System.IO;
-using System.Linq;
 
 namespace GymManager_MPP;
 
@@ -23,10 +21,18 @@ public class XmlPaymentMapper : IMapper<Payment, long>
     {
         lock (_fileLock)
         {
-            if (!File.Exists(_filePath))
+            try
             {
-                var doc = new XDocument(new XElement("Payments"));
-                doc.Save(_filePath);
+                if (!File.Exists(_filePath))
+                {
+                    var doc = new XDocument(new XElement("Payments"));
+                    doc.Save(_filePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[XmlPaymentMapper] Error en EnsureFile(): {ex}");
+                throw;
             }
         }
     }
@@ -35,7 +41,15 @@ public class XmlPaymentMapper : IMapper<Payment, long>
     {
         lock (_fileLock)
         {
-            return XDocument.Load(_filePath);
+            try
+            {
+                return XDocument.Load(_filePath);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[XmlPaymentMapper] Error en LoadDoc(): {ex}");
+                throw;
+            }
         }
     }
 
@@ -43,7 +57,15 @@ public class XmlPaymentMapper : IMapper<Payment, long>
     {
         lock (_fileLock)
         {
-            doc.Save(_filePath);
+            try
+            {
+                doc.Save(_filePath);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[XmlPaymentMapper] Error en SaveDoc(): {ex}");
+                throw;
+            }
         }
     }
 
@@ -73,138 +95,189 @@ public class XmlPaymentMapper : IMapper<Payment, long>
 
     public Task<Payment> Create(Payment obj, long feeId)
     {
-        var doc = LoadDoc();
-        var root = doc.Root ?? new XElement(Payments);
+        try
+        {
+            var doc = LoadDoc();
+            var root = doc.Root ?? new XElement(Payments);
 
-        var maxId = root.Elements(PaymentElem)
-            .Select(x => (long?)x.Attribute(Id) ?? 0)
-            .DefaultIfEmpty(0)
-            .Max();
-        var newId = maxId + 1;
-        obj.Id = newId;
+            var maxId = root.Elements(PaymentElem)
+                .Select(x => (long?)x.Attribute(Id) ?? 0)
+                .DefaultIfEmpty(0)
+                .Max();
+            var newId = maxId + 1;
+            obj.Id = newId;
 
-        root.Add(PaymentToXElement(obj, feeId));
-        SaveDoc(doc);
-        return Task.FromResult(obj);
+            root.Add(PaymentToXElement(obj, feeId));
+            SaveDoc(doc);
+            return Task.FromResult(obj);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"[XmlPaymentMapper] Error en Create(..., feeId={feeId}): {ex}");
+            throw;
+        }
     }
 
     public Task<Payment?> GetById(long id)
     {
-        var doc = LoadDoc();
-        var elem = doc.Root?
-            .Elements(PaymentElem)
-            .FirstOrDefault(x => (long?)x.Attribute(Id) == id);
+        try
+        {
+            var doc = LoadDoc();
+            var elem = doc.Root?
+                .Elements(PaymentElem)
+                .FirstOrDefault(x => (long?)x.Attribute(Id) == id);
 
-        if (elem == null) return Task.FromResult<Payment?>(null);
-        return Task.FromResult<Payment?>(XElementToPayment(elem));
+            if (elem == null) return Task.FromResult<Payment?>(null);
+            return Task.FromResult<Payment?>(XElementToPayment(elem));
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlPaymentMapper] Error en GetById({id}): {ex}");
+            throw;
+        }
     }
 
     public Task<List<Payment>> GetAll()
     {
-        var doc = LoadDoc();
-        var list = doc.Root?
-            .Elements(PaymentElem)
-            .Select(XElementToPayment)
-            .ToList() ?? new List<Payment>();
-        return Task.FromResult(list);
+        try
+        {
+            var doc = LoadDoc();
+            var list = doc.Root?
+                .Elements(PaymentElem)
+                .Select(XElementToPayment)
+                .ToList() ?? new List<Payment>();
+            return Task.FromResult(list);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlPaymentMapper] Error en GetAll(): {ex}");
+            throw;
+        }
     }
 
     public Task<bool> Update(Payment obj)
     {
-        var doc = LoadDoc();
-        var root = doc.Root;
-        var elem = root?.Elements(PaymentElem)
-            .FirstOrDefault(x => (long?)x.Attribute(Id) == obj.Id);
-        if (elem == null) return Task.FromResult(false);
-
-        elem.SetElementValue(PaymentDate,
-            obj.PaymentDate.ToString(DateFormat, CultureInfo.InvariantCulture));
-        elem.SetElementValue(Amount, obj.Amount.ToString(CultureInfo.InvariantCulture));
-        elem.SetElementValue(Status, obj.Status ?? string.Empty);
-
-        var typeVal = obj.GetType() == typeof(CardPayment) ? "Card" :
-            obj.GetType() == typeof(CashPayment) ? "Cash" : "Generic";
-        elem.SetElementValue(Type, typeVal);
-
-        elem.Element(CardBrand)?.Remove();
-        elem.Element(CardLast4)?.Remove();
-        elem.Element(ReceiptNumber)?.Remove();
-
-        if (obj is CardPayment card)
+        try
         {
-            elem.Add(new XElement(CardBrand, card.Brand ?? string.Empty));
-            elem.Add(new XElement(CardLast4, card.LastFourDigits.ToString("D4")));
-        }
-        else if (obj is CashPayment cash)
-        {
-            elem.Add(new XElement(ReceiptNumber, cash.ReceiptNumber ?? string.Empty));
-        }
+            var doc = LoadDoc();
+            var root = doc.Root;
+            var elem = root?.Elements(PaymentElem)
+                .FirstOrDefault(x => (long?)x.Attribute(Id) == obj.Id);
+            if (elem == null) return Task.FromResult(false);
 
-        SaveDoc(doc);
-        return Task.FromResult(true);
+            elem.SetElementValue(PaymentDate,
+                obj.PaymentDate.ToString(DateFormat, CultureInfo.InvariantCulture));
+            elem.SetElementValue(Amount, obj.Amount.ToString(CultureInfo.InvariantCulture));
+            elem.SetElementValue(Status, obj.Status ?? string.Empty);
+
+            var typeVal = obj.GetType() == typeof(CardPayment) ? "Card" :
+                obj.GetType() == typeof(CashPayment) ? "Cash" : "Generic";
+            elem.SetElementValue(Type, typeVal);
+
+            elem.Element(CardBrand)?.Remove();
+            elem.Element(CardLast4)?.Remove();
+            elem.Element(ReceiptNumber)?.Remove();
+
+            if (obj is CardPayment card)
+            {
+                elem.Add(new XElement(CardBrand, card.Brand ?? string.Empty));
+                elem.Add(new XElement(CardLast4, card.LastFourDigits.ToString("D4")));
+            }
+            else if (obj is CashPayment cash)
+            {
+                elem.Add(new XElement(ReceiptNumber, cash.ReceiptNumber ?? string.Empty));
+            }
+
+            SaveDoc(doc);
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlPaymentMapper] Error en Update(Id={obj.Id}): {ex}");
+            throw;
+        }
     }
 
     public Task<bool> Delete(long id)
     {
-        var doc = LoadDoc();
-        var root = doc.Root;
-        var elem = root?.Elements(PaymentElem).FirstOrDefault(x => (long?)x.Attribute(Id) == id);
-        if (elem == null) return Task.FromResult(false);
-        elem.Remove();
-        SaveDoc(doc);
-        return Task.FromResult(true);
+        try
+        {
+            var doc = LoadDoc();
+            var root = doc.Root;
+            var elem = root?.Elements(PaymentElem)
+                .FirstOrDefault(x => (long?)x.Attribute(Id) == id);
+            if (elem == null) return Task.FromResult(false);
+            elem.Remove();
+            SaveDoc(doc);
+            return Task.FromResult(true);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[XmlPaymentMapper] Error en Delete({id}): {ex}");
+            throw;
+        }
     }
 
     public Task<List<Payment>> Search(DateOnly from, DateOnly to, long userId)
     {
-        var payments = new List<Payment>();
-        var doc = LoadDoc();
-        if (doc.Root == null) return Task.FromResult(payments);
-
-        var elems = doc.Root.Elements(PaymentElem).AsEnumerable();
-
-        if (from != default)
+        try
         {
-            elems = elems.Where(e =>
-            {
-                var pd = ParseDateOnly((string?)e.Element(PaymentDate));
-                return pd != default && pd >= from;
-            });
-        }
+            var payments = new List<Payment>();
+            var doc = LoadDoc();
+            if (doc.Root == null) return Task.FromResult(payments);
 
-        if (to != default)
-        {
-            elems = elems.Where(e =>
-            {
-                var pd = ParseDateOnly((string?)e.Element(PaymentDate));
-                return pd != default && pd <= to;
-            });
-        }
+            var elems = doc.Root.Elements(PaymentElem).AsEnumerable();
 
-        if (userId != 0)
-        {
-            var feesPath = Path.Combine(AppContext.BaseDirectory, "fees.xml");
-            if (!File.Exists(feesPath))
+            if (from != default)
             {
-                // No fees file -> no results for user filter
-                return Task.FromResult(new List<Payment>());
+                elems = elems.Where(e =>
+                {
+                    var pd = ParseDateOnly((string?)e.Element(PaymentDate));
+                    return pd != default && pd >= from;
+                });
             }
 
-            var feesDoc = XDocument.Load(feesPath);
-            var feeIds = feesDoc.Root?
-                .Elements("Fee")
-                .Where(f => ((long?)f.Element("UserId") ?? 0) == userId)
-                .Select(f => (long?)f.Attribute("id") ?? 0)
-                .Where(id => id != 0)
-                .ToHashSet() ?? [];
+            if (to != default)
+            {
+                elems = elems.Where(e =>
+                {
+                    var pd = ParseDateOnly((string?)e.Element(PaymentDate));
+                    return pd != default && pd <= to;
+                });
+            }
 
-            if (feeIds.Count == 0) return Task.FromResult(new List<Payment>());
+            if (userId != 0)
+            {
+                var feesPath = Path.Combine(AppContext.BaseDirectory, "fees.xml");
+                if (!File.Exists(feesPath))
+                {
+                    // No fees file -> no results for user filter
+                    return Task.FromResult(new List<Payment>());
+                }
 
-            elems = elems.Where(e => feeIds.Contains((long?)e.Element(FeeId) ?? 0));
+                var feesDoc = XDocument.Load(feesPath);
+                var feeIds = feesDoc.Root?
+                    .Elements("Fee")
+                    .Where(f => ((long?)f.Element("UserId") ?? 0) == userId)
+                    .Select(f => (long?)f.Attribute("id") ?? 0)
+                    .Where(id => id != 0)
+                    .ToHashSet() ?? new HashSet<long>();
+
+                if (feeIds.Count == 0) return Task.FromResult(new List<Payment>());
+
+                elems = elems.Where(e => feeIds.Contains((long?)e.Element(FeeId) ?? 0));
+            }
+
+            payments.AddRange(elems.Select(XElementToPayment));
+            return Task.FromResult(payments);
         }
-
-        payments.AddRange(elems.Select(XElementToPayment));
-        return Task.FromResult(payments);
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"[XmlPaymentMapper] Error en Search(from={from}, to={to}, userId={userId}): {ex}");
+            throw;
+        }
     }
 
     #region BuildUtils
