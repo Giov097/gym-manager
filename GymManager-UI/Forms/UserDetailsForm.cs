@@ -13,7 +13,7 @@ public partial class UserDetailsForm : Form
         txtLastName.Text = user.LastName;
         txtEmail.Text = user.Email;
         lstRoles.Items.AddRange(user.UserRoles.Select(r => r.GetRoleName()).ToArray<object>());
-        Text = $"{user.FirstName} {user.LastName} - Detalles";
+        Text = $"{user.FirstName} {user.LastName} - {Lang.Details}";
 
     }
 

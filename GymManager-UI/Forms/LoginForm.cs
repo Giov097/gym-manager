@@ -53,7 +53,7 @@ public partial class LoginForm : Form
             };
             var user =
                 await _userService.Login(userToValidate);
-            MessageBox.Show("¡Login exitoso!", "Inicio de sesión",
+            MessageBox.Show(Lang.LoginSuccess, Lang.Login,
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
             SessionManager.CurrentUser = user;
             var mainForm = new MainForm(new UserService(), new XmlUserService(), new FeeService(),
@@ -64,7 +64,7 @@ public partial class LoginForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Error al iniciar sesión: " + ex.Message, "Inicio de sesión",
+            MessageBox.Show(Lang.LoginFailed + ex.Message, Lang.Login,
                 MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
     }

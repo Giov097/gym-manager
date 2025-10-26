@@ -93,7 +93,6 @@ public partial class MainForm : Form
         monthComboBox.SelectedIndex = DateTime.Now.Month - 1;
         yearComboBox.SelectedItem = currentYear;
 
-        // Controles para "Pagos por método"
         var fromLabel = new Label
             { Text = "Desde:", Location = new Point(10, 10), AutoSize = true };
         var fromDatePicker = new DateTimePicker
@@ -149,14 +148,12 @@ public partial class MainForm : Form
             });
         });
 
-        // Inicialización de controles de parámetros
         reportParamsPanel.Controls.Clear();
         reportParamsPanel.Controls.Add(monthLabel);
         reportParamsPanel.Controls.Add(monthComboBox);
         reportParamsPanel.Controls.Add(yearLabel);
         reportParamsPanel.Controls.Add(yearComboBox);
 
-        // Controles para "Pagos por rango de fechas"
         var rangeFromLabel = new Label
             { Text = "Desde:", Location = new Point(10, 10), AutoSize = true };
         var rangeFromDatePicker = new DateTimePicker
@@ -174,7 +171,6 @@ public partial class MainForm : Form
             Format = DateTimePickerFormat.Short
         };
 
-        // Switch para mostrar/ocultar combos según el tipo de reporte
         reportTypeComboBox.SelectedIndexChanged += (_, _) =>
         {
             reportParamsPanel.Controls.Clear();
@@ -271,7 +267,6 @@ public partial class MainForm : Form
             ViewUser = "👁️"
         }).ToList();
 
-        // Personalizar columnas de cuotas
         feesGridView.Columns["Id"]!.HeaderText = "ID";
         feesGridView.Columns["Id"]!.Width = 50;
         feesGridView.Columns["StartDate"]!.HeaderText = Desde;
@@ -444,7 +439,6 @@ public partial class MainForm : Form
                 emailTxt.Text = user.Email;
                 rolesTxt.Text = string.Join(", ", user.UserRoles.Select(r => r.GetRoleName()));
 
-                // Cargar cuotas
                 var fees =
                     await _feeService.SearchFees(DateOnly.MinValue, DateOnly.MaxValue, user.Id);
                 feesUserGridView.DataSource = fees.Select(f => new
@@ -455,7 +449,6 @@ public partial class MainForm : Form
                     Estado = f.Payment?.Status
                 }).ToList();
 
-                // Cargar pagos
                 var payments =
                     await _paymentService.SearchPayments(DateOnly.MinValue, DateOnly.MaxValue,
                         user.Id);
@@ -545,7 +538,7 @@ public partial class MainForm : Form
                     Metodo = Efectivo
                 });
         }
-        else // Tarjeta
+        else
         {
             filteredPayments = payments
                 .Where(p => p.GetType().Name == "CardPayment")

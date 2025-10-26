@@ -98,7 +98,7 @@ partial class UserDetailsForm
         firstNameLbl.Name = "firstNameLbl";
         firstNameLbl.Size = new System.Drawing.Size(100, 23);
         firstNameLbl.TabIndex = 6;
-        firstNameLbl.Text = "Nombre";
+        firstNameLbl.Text = Lang.FirstName;
         // 
         // lastNameLbl
         // 
@@ -106,7 +106,7 @@ partial class UserDetailsForm
         lastNameLbl.Name = "lastNameLbl";
         lastNameLbl.Size = new System.Drawing.Size(100, 23);
         lastNameLbl.TabIndex = 7;
-        lastNameLbl.Text = "Apellido";
+        lastNameLbl.Text = Lang.LastName;
         // 
         // emailLbl
         // 
@@ -114,7 +114,7 @@ partial class UserDetailsForm
         emailLbl.Name = "emailLbl";
         emailLbl.Size = new System.Drawing.Size(100, 23);
         emailLbl.TabIndex = 8;
-        emailLbl.Text = "Email";
+        emailLbl.Text = Lang.Email;
         // 
         // rolesLbl
         // 
@@ -141,7 +141,7 @@ partial class UserDetailsForm
         Controls.Add(txtFirstName);
         Controls.Add(txtId);
         Location = new System.Drawing.Point(15, 15);
-        Text = "Detalles";
+        Text = Lang.Details;
         ResumeLayout(false);
         PerformLayout();
     }
