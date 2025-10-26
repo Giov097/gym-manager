@@ -61,7 +61,7 @@ partial class LoginForm
         loginBtn.Name = "loginBtn";
         loginBtn.Size = new System.Drawing.Size(253, 23);
         loginBtn.TabIndex = 2;
-        loginBtn.Text = "Iniciar sesión";
+        loginBtn.Text = Lang.Login;
         loginBtn.UseVisualStyleBackColor = true;
         loginBtn.Click += btnLogin_Click;
         // 
@@ -84,7 +84,7 @@ partial class LoginForm
         pwdLabel.Name = "pwdLabel";
         pwdLabel.Size = new System.Drawing.Size(89, 12);
         pwdLabel.TabIndex = 4;
-        pwdLabel.Text = "Password";
+        pwdLabel.Text = Lang.Password;
         // 
         // emailLabel
         // 
@@ -92,9 +92,9 @@ partial class LoginForm
         emailLabel.ForeColor = System.Drawing.SystemColors.InactiveCaptionText;
         emailLabel.Location = new System.Drawing.Point(258, 226);
         emailLabel.Name = "emailLabel";
-        emailLabel.Size = new System.Drawing.Size(89, 12);
+        emailLabel.Size = new System.Drawing.Size(112, 12);
         emailLabel.TabIndex = 5;
-        emailLabel.Text = "Email";
+        emailLabel.Text = Lang.Email;
         // 
         // btnShowPassword
         // 
@@ -117,7 +117,7 @@ partial class LoginForm
         Controls.Add(loginBtn);
         Controls.Add(_txtPassword);
         Controls.Add(_txtUsername);
-        Text = "Gym Manager - Inicio de sesión";
+        Text = Lang.LoginTitle;
         ResumeLayout(false);
         PerformLayout();
     }

@@ -359,9 +359,8 @@ public class XmlPaymentMapper : IMapper<Payment, long>
     {
         if (string.IsNullOrWhiteSpace(s)) return default;
         if (DateOnly.TryParseExact(s, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None,
-                out var d))
+                out var d) || DateOnly.TryParse(s, out d))
             return d;
-        if (DateOnly.TryParse(s, out d)) return d;
         return default;
     }
 

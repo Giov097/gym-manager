@@ -1,3 +1,4 @@
+using System.Globalization;
 using GymManager_DAL;
 using GymManager.Forms;
 
@@ -24,6 +25,8 @@ internal static class Program
         }
         else
         {
+            // Para cambiar idioma
+            // Thread.CurrentThread.CurrentUICulture = new CultureInfo("en-us");
             Application.Run(new LoginForm());
         }
     }
