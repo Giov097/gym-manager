@@ -8,12 +8,12 @@ public class UserService : IUserService
 {
     private readonly UserMapper _mapper = new();
 
-    public Task<User> Login(string email, string password)
+    public Task<User> Login(User inputUser)
     {
-        return _mapper.GetByEmail(email).ContinueWith(user =>
+        return _mapper.GetByEmail(inputUser.Email).ContinueWith(user =>
                     user.Result ?? throw new UserNotFoundException())
                 .ContinueWith(user =>
-                    !password.Equals(user.Result.Password)
+                    !inputUser.Password!.Equals(user.Result.Password)
                         ? throw new InvalidCredentialsException("Usuario o contraseña inválidos")
                         : user.Result)
             ;

@@ -9,7 +9,6 @@ public partial class CreateUserForm : Form
     public User? CreatedUser { get; private set; }
 
     private readonly EncryptionUtils _encryptionUtils = new();
-    private readonly UserEditorControl _editor = new();
 
     #region Constants
 
@@ -20,15 +19,15 @@ public partial class CreateUserForm : Form
     public CreateUserForm()
     {
         InitializeComponent();
-        _editor.SetBounds(10, 10, _editor.Width, _editor.Height);
-        Controls.Add(_editor);
+
+
         btnOk.Click += BtnOk_Click!;
         btnCancel.Click += (_, _) => Close();
-        btnShowPassword.MouseDown += (_, _) => txtPassword.UseSystemPasswordChar = false;
-        btnShowPasswordRepeat.MouseDown +=
-            (_, _) => txtRepeatPassword.UseSystemPasswordChar = false;
-        btnShowPassword.MouseUp += (_, _) => txtPassword.UseSystemPasswordChar = true;
-        btnShowPasswordRepeat.MouseUp += (_, _) => txtRepeatPassword.UseSystemPasswordChar = true;
+
+        btnShowPassword.MouseDown += (_, _) => _editor.SetPasswordFieldVisibility(true);
+        btnShowPassword.MouseUp += (_, _) => _editor.SetPasswordFieldVisibility(false);
+        btnShowPasswordRepeat.MouseDown += (_, _) => _editor.SetRepeatPasswordFieldVisibility(true);
+        btnShowPasswordRepeat.MouseUp += (_, _) => _editor.SetRepeatPasswordFieldVisibility(false);
     }
 
     private void BtnOk_Click(object sender, EventArgs e)

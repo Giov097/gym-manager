@@ -117,4 +117,14 @@ public partial class UserEditorControl : UserControl
             UserRoles = selectedRoles
         };
     }
+
+    public void SetPasswordFieldVisibility(bool visible)
+    {
+        _txtPassword.UseSystemPasswordChar = !visible;
+    }
+
+    public void SetRepeatPasswordFieldVisibility(bool visible)
+    {
+        _txtRepeatPassword.UseSystemPasswordChar = !visible;
+    }
 }
