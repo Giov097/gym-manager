@@ -84,7 +84,8 @@ BEGIN
            p.status  AS payment_status,
            p.card_last4,
            p.card_brand,
-           p.receipt_number
+           p.receipt_number,
+           r.role_name
     FROM users u
              LEFT JOIN user_roles ur ON u.id = ur.user_id
              LEFT JOIN roles r ON ur.role_id = r.id
@@ -98,7 +99,13 @@ CREATE OR ALTER PROCEDURE dbo.usp_GetUserByEmail @Email NVARCHAR(255)
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT * FROM users WHERE email = @Email;
+    SELECT *
+    FROM users u
+             LEFT JOIN user_roles ur ON u.id = ur.user_id
+             LEFT JOIN roles r ON ur.role_id = r.id
+             LEFT JOIN fees f ON u.id = f.user_id
+             LEFT JOIN payments p ON f.id = p.fee_id
+    WHERE u.email = @Email;
 END;
 GO
 
@@ -106,9 +113,11 @@ CREATE OR ALTER PROCEDURE dbo.usp_GetUserByFeeId @FeeId BIGINT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT u.*
+    SELECT u.*, r.role_name
     FROM users u
              INNER JOIN fees f ON u.id = f.user_id
+             LEFT JOIN user_roles ur ON u.id = ur.user_id
+             LEFT JOIN roles r ON ur.role_id = r.id
     WHERE f.id = @FeeId;
 END;
 GO
@@ -171,10 +180,10 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE sp_CreateFee @Amount decimal(18, 2),
-                              @StartDate date,
-                              @EndDate date,
-                              @UserId bigint
+CREATE OR ALTER PROCEDURE sp_CreateFee @Amount decimal(18, 2),
+                                       @StartDate date,
+                                       @EndDate date,
+                                       @UserId bigint
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -185,7 +194,7 @@ BEGIN
 END
 GO
 
-CREATE PROCEDURE sp_GetFeeById @Id bigint
+CREATE OR ALTER PROCEDURE sp_GetFeeById @Id bigint
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -208,7 +217,7 @@ BEGIN
 END
 GO
 
-CREATE PROCEDURE sp_GetAllFees
+CREATE OR ALTER PROCEDURE sp_GetAllFees
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -230,10 +239,10 @@ BEGIN
 END
 GO
 
-CREATE PROCEDURE sp_UpdateFee @Id bigint,
-                              @Amount decimal(18, 2),
-                              @StartDate date,
-                              @EndDate date
+CREATE OR ALTER PROCEDURE sp_UpdateFee @Id bigint,
+                                       @Amount decimal(18, 2),
+                                       @StartDate date,
+                                       @EndDate date
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -247,11 +256,16 @@ BEGIN
 END
 GO
 
-CREATE PROCEDURE sp_DeleteFee @Id bigint
+CREATE OR ALTER PROCEDURE sp_DeleteFee @Id bigint
 AS
 BEGIN
-    SET NOCOUNT ON;
-    DELETE FROM fees WHERE id = @Id;
+    SET
+        NOCOUNT ON;
+
+    DELETE
+    FROM fees
+    WHERE id = @Id;
+
     SELECT @@ROWCOUNT AS RowsAffected;
 END
 GO

@@ -64,6 +64,12 @@ partial class MainForm
         reportParamsPanel = new System.Windows.Forms.Panel();
         btnGenerateReport = new System.Windows.Forms.Button();
         reportGridView = new System.Windows.Forms.DataGridView();
+
+        tabPageChart = new System.Windows.Forms.TabPage();
+        chartComboBox = new System.Windows.Forms.ComboBox();
+        chartGenerateBtn = new System.Windows.Forms.Button();
+        reportChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
+
         myDataTabControl.SuspendLayout();
         tabPage1.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)usersGridView).BeginInit();
@@ -354,6 +360,41 @@ partial class MainForm
         tabPageReportes.Controls.Add(btnGenerateReport);
         tabPageReportes.Controls.Add(reportGridView);
         myDataTabControl.Controls.Add(tabPageReportes);
+
+        // 
+        // tabPageChart (nuevo)
+        // 
+        tabPageChart.Location = new System.Drawing.Point(4, 24);
+        tabPageChart.Name = "tabPageChart";
+        tabPageChart.Padding = new System.Windows.Forms.Padding(3);
+        tabPageChart.Size = new System.Drawing.Size(768, 398);
+        tabPageChart.TabIndex = 4;
+        tabPageChart.Text = "Reportes - Chart";
+        tabPageChart.UseVisualStyleBackColor = true;
+
+        chartComboBox.Location = new System.Drawing.Point(20, 20);
+        chartComboBox.Size = new System.Drawing.Size(300, 23);
+        chartComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+        chartComboBox.Items.AddRange(new object[]
+        {
+            "Recaudación mensual",
+            "Alumnos con más deuda"
+        });
+        chartComboBox.SelectedIndex = 0;
+
+        chartGenerateBtn.Text = "Generar";
+        chartGenerateBtn.Location = new System.Drawing.Point(340, 18);
+        chartGenerateBtn.Size = new System.Drawing.Size(80, 26);
+
+        reportChart.Location = new System.Drawing.Point(20, 60);
+        reportChart.Size = new System.Drawing.Size(720, 320);
+        reportChart.Name = "reportChart";
+
+        tabPageChart.Controls.Add(chartComboBox);
+        tabPageChart.Controls.Add(chartGenerateBtn);
+        tabPageChart.Controls.Add(reportChart);
+        myDataTabControl.Controls.Add(tabPageChart);
+
         // 
         // MainForm
         // 
@@ -416,5 +457,17 @@ partial class MainForm
     private System.Windows.Forms.Button btnGenerateReport;
     private System.Windows.Forms.DataGridView reportGridView;
 
+    private System.Windows.Forms.TabPage tabPageChart;
+    private System.Windows.Forms.ComboBox chartComboBox;
+    private System.Windows.Forms.Button chartGenerateBtn;
+    private System.Windows.Forms.DataVisualization.Charting.Chart reportChart;
+
+    private ComboBox chartMonthComboBox;
+    private ComboBox chartYearComboBox;
+    private ComboBox viewerMonthComboBox;
+    private ComboBox viewerYearComboBox;
+
+    
     #endregion
 }
+

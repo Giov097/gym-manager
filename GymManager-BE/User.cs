@@ -15,4 +15,6 @@ public class User : IEntity<long>
     public IEnumerable<UserRole>? UserRoles { get; set; }
 
     public IEnumerable<Fee> Fees { get; set; } = new List<Fee>();
+
+    public string FullName => $"{FirstName} {LastName}";
 }

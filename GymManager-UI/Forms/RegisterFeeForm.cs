@@ -37,7 +37,7 @@ public partial class RegisterFeeForm : Form
         {
             var users = await _userService.GetUsers();
             userCombo.DataSource = users;
-            userCombo.DisplayMember = "FirstName";
+            userCombo.DisplayMember = "FullName";
             userCombo.ValueMember = "Id";
         }
         catch (Exception e)

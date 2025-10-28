@@ -6,7 +6,7 @@ namespace GymManager_BLL.Impl;
 
 public class XmlUserService : IUserService
 {
-    private readonly XmlUserMapper _mapper = new("data.xml");
+    private readonly XmlUserMapper _mapper = new("../../../data.xml");
 
     public Task<User> Login(User userInput)
     {

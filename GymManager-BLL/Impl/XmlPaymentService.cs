@@ -6,7 +6,7 @@ namespace GymManager_BLL.Impl;
 
 public class XmlPaymentService : IPaymentService //TODO: dividir por tipo de pago
 {
-    private readonly XmlPaymentMapper _mapper = new("data.xml");
+    private readonly XmlPaymentMapper _mapper = new("../../../data.xml");
 
     public Task<List<Payment>> GetPayments()
     {

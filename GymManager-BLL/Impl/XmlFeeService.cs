@@ -6,7 +6,7 @@ namespace GymManager_BLL.Impl;
 
 public class XmlFeeService : IFeeService
 {
-    private readonly XmlFeeMapper _mapper = new("data.xml");
+    private readonly XmlFeeMapper _mapper = new("../../../data.xml");
 
     public Task<List<Fee>> GetFees()
     {

@@ -1,7 +1,8 @@
 using GymManager_BE;
 using GymManager_BLL;
-using GymManager_BLL.Impl;
 using Microsoft.Extensions.Logging;
+using System.Windows.Forms.DataVisualization.Charting;
+using Microsoft.Reporting.WinForms;
 
 namespace GymManager.Forms;
 
@@ -237,6 +238,71 @@ public partial class MainForm : Form
             default:
                 break;
         }
+
+        chartGenerateBtn.Click += ChartGenerateBtn_Click!;
+
+        chartMonthComboBox = new ComboBox
+        {
+            Location = new Point(20, 50),
+            Size = new Size(140, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        chartMonthComboBox.Items.Add("Todo el año");
+        for (var m = 1; m <= 12; m++)
+            chartMonthComboBox.Items.Add(new DateTime(1, m, 1).ToString("MMMM"));
+        chartMonthComboBox.SelectedIndex = 0;
+
+        chartYearComboBox = new ComboBox
+        {
+            Location = new Point(180, 50),
+            Size = new Size(100, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        for (var y = currentYear - 5; y <= currentYear + 1; y++)
+            chartYearComboBox.Items.Add(y);
+        chartYearComboBox.SelectedItem = currentYear;
+
+        tabPageChart.Controls.Add(new Label
+            { Text = "Mes/Año:", Location = new Point(20, 30), AutoSize = true });
+        tabPageChart.Controls.Add(chartMonthComboBox);
+        tabPageChart.Controls.Add(chartYearComboBox);
+
+
+        viewerMonthComboBox = new ComboBox
+        {
+            Location = new Point(20, 50),
+            Size = new Size(140, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        viewerMonthComboBox.Items.Add("Todo el año");
+        for (var m = 1; m <= 12; m++)
+            viewerMonthComboBox.Items.Add(new DateTime(1, m, 1).ToString("MMMM"));
+        viewerMonthComboBox.SelectedIndex = 0;
+
+        viewerYearComboBox = new ComboBox
+        {
+            Location = new Point(180, 50),
+            Size = new Size(100, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        for (var y = currentYear - 5; y <= currentYear + 1; y++)
+            viewerYearComboBox.Items.Add(y);
+        viewerYearComboBox.SelectedItem = currentYear;
+
+
+        reportChart.Location = new Point(20, 90);
+        reportChart.Size = new Size(720, 300);
+        reportChart.SendToBack();
+
+        var initialHide = reportTypeComboBox.SelectedItem?.ToString() == "Alumnos con más deuda";
+        if (chartMonthComboBox != null) chartMonthComboBox.Visible = !initialHide;
+        if (chartYearComboBox != null) chartYearComboBox.Visible = !initialHide;
+        if (viewerMonthComboBox != null) viewerMonthComboBox.Visible = !initialHide;
+        if (viewerYearComboBox != null) viewerYearComboBox.Visible = !initialHide;
+
+        var initChartLabel = tabPageChart.Controls.OfType<Label>()
+            .FirstOrDefault(l => l.Text == "Mes/Año:");
+        if (initChartLabel != null) initChartLabel.Visible = !initialHide;
     }
 
     private async void MainForm_Load(object sender, EventArgs e)
@@ -245,7 +311,17 @@ public partial class MainForm : Form
         {
             var users = await _userService.GetUsers();
             FillUsersDataGrid(users);
+        }
+        catch (Exception exception)
+        {
+            MessageBox.Show("Error al cargar datos: " + exception.Message, ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+        try
+        {
             var fees = await _feeService.GetFees();
+
             FillFeesDataGrid(fees);
         }
         catch (Exception exception)
@@ -334,15 +410,6 @@ public partial class MainForm : Form
             {
                 var newUser = createForm.CreatedUser;
                 await _userService.CreateUser(newUser!);
-                try
-                {
-                    await _xmlUserService.CreateUser(newUser!);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error duplicating user: {Message}", ex.Message);
-                }
-
                 MessageBox.Show("Usuario creado con éxito", SuccessCaption,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 var users = await _userService.GetUsers();
@@ -705,5 +772,129 @@ public partial class MainForm : Form
             reportGridView.Columns[Estado]!.HeaderText = Estado;
         if (reportGridView.Columns[Metodo] != null)
             reportGridView.Columns[Metodo]!.HeaderText = "Método";
+    }
+
+    private async void ChartGenerateBtn_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            var selection = chartComboBox.SelectedItem?.ToString();
+            reportChart.Series.Clear();
+            reportChart.ChartAreas.Clear();
+            var area = new ChartArea("MainArea");
+            area.AxisX.Interval = 1;
+            area.AxisX.LabelStyle.Angle = -45;
+            area.AxisX.LabelStyle.IsEndLabelVisible = true;
+            area.AxisX.MajorGrid.Enabled = false;
+            area.AxisY.MajorGrid.Enabled = true;
+            reportChart.ChartAreas.Add(area);
+
+            switch (selection)
+            {
+                case "Recaudación mensual":
+                {
+                    var monthIndex = chartMonthComboBox?.SelectedIndex ?? 0;
+                    var year =
+                        chartYearComboBox != null &&
+                        int.TryParse(chartYearComboBox.SelectedItem?.ToString(), out var y)
+                            ? y
+                            : DateTime.Now.Year;
+
+                    if (monthIndex == 0)
+                    {
+                        var from = new DateOnly(year, 1, 1);
+                        var to = new DateOnly(year, 12, 31);
+                        var payments = await _paymentService.SearchPayments(from, to, 0);
+
+                        var grouped = payments
+                            .GroupBy(p => p.PaymentDate.Month)
+                            .Select(g => new { Month = g.Key, Total = g.Sum(p => p.Amount) })
+                            .ToDictionary(x => x.Month, x => x.Total);
+
+                        var s = new Series("Recaudación")
+                        {
+                            ChartType = SeriesChartType.Column,
+                            XValueType = ChartValueType.String,
+                            IsValueShownAsLabel = true,
+                            ["PointWidth"] = "0.6"
+                        };
+
+                        for (var m = 1; m <= 12; m++)
+                        {
+                            var total = grouped.GetValueOrDefault(m, 0m);
+                            s.Points.AddXY(m, (double)total);
+                        }
+
+                        reportChart.Series.Add(s);
+                        reportChart.ChartAreas[0].AxisX.Interval = 1;
+                        reportChart.ChartAreas[0].AxisX.Minimum = 1;
+                        reportChart.ChartAreas[0].AxisX.Maximum = 12;
+                        reportChart.ChartAreas[0].AxisX.LabelStyle.Angle = -45;
+                        reportChart.ChartAreas[0].AxisY.LabelStyle.Angle = -45;
+                    }
+                    else
+                    {
+                        var month = monthIndex;
+                        var from = new DateOnly(year, month, 1);
+                        var to = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
+                        var payments = await _paymentService.SearchPayments(from, to, 0);
+                        var total = payments.Sum(p => p.Amount);
+
+                        var s = new Series("Recaudación")
+                        {
+                            ChartType = SeriesChartType.Column,
+                            XValueType = ChartValueType.String,
+                            IsValueShownAsLabel = true,
+                            ["PointWidth"] = "0.6"
+                        };
+                        s.Points.AddXY(from.ToString("MMMM"), (double)total);
+
+                        reportChart.Series.Add(s);
+                    }
+
+                    break;
+                }
+                case "Alumnos con más deuda":
+                {
+                    var users = await _userService.GetUsers();
+                    var debts = users.Select(u =>
+                        {
+                            var deuda = u.Fees.Sum(f =>
+                                f.Payment == null
+                                    ? f.Amount
+                                    : Math.Max(0, f.Amount - f.Payment.Amount)
+                            );
+                            return new { Alumno = $"{u.FirstName} {u.LastName}", Deuda = deuda };
+                        })
+                        .Where(d => d.Deuda > 0)
+                        .OrderBy(d => d.Deuda)
+                        .Take(10)
+                        .ToList();
+
+                    var s = new Series("Deuda")
+                    {
+                        ChartType = SeriesChartType.Bar,
+                        XValueType = ChartValueType.String,
+                        IsXValueIndexed = true,
+                        ["PointWidth"] = "0.6"
+                    };
+
+                    foreach (var d in debts)
+                    {
+                        s.Points.AddXY(d.Alumno, (double)d.Deuda);
+                    }
+
+                    reportChart.Series.Add(s);
+                    reportChart.ChartAreas[0].AxisX.Interval = 1;
+                    reportChart.ChartAreas[0].AxisX.LabelStyle.Angle = -45;
+                    break;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al generar gráfico: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 }

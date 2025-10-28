@@ -235,7 +235,7 @@ public class UserMapper : IMapper<User, long>
 
     private static User BuildUser(DataRow row)
     {
-        return new User
+        var user = new User
         {
             Id = (long)row["id"],
             FirstName = row["first_name"].ToString() ?? string.Empty,
@@ -245,6 +245,12 @@ public class UserMapper : IMapper<User, long>
             UserRoles = new List<UserRole>(),
             Fees = new List<Fee>()
         };
+        if (row["role_name"] != DBNull.Value)
+        {
+            MapRoles(row, user);
+        }
+
+        return user;
     }
 
     private static void MapFees(DataRow row, User user)

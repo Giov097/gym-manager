@@ -1,14 +1,10 @@
 using GymManager_BE;
+using GymManager_BLL;
 using GymManager_BLL.Impl;
 using GymManager_SEC;
 using GymManager.Controls;
 
 namespace GymManager.Forms;
-
-using System;
-using System.Windows.Forms;
-using GymManager_BLL;
-using System.Drawing;
 
 public partial class LoginForm : Form
 {
@@ -74,7 +70,7 @@ public partial class LoginForm : Form
         if (e.KeyCode == Keys.Enter)
         {
             btnLogin_Click(sender, EventArgs.Empty);
-            e.SuppressKeyPress = true; // Evita el beep
+            e.SuppressKeyPress = true;
         }
     }
 }

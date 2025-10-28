@@ -55,6 +55,6 @@ public interface IUserService
     /// Retrieves a user associated with a specific fee ID.
     /// </summary>
     /// <param name="feeId">The unique identifier of the fee.</param>
-    /// <returns>A <see cref="User"/> object representing the user associated with the specified
+    /// <returns>A object representing the user associated with the specified<see cref="User"/> 
     Task<User> GetUserByFeeId(long feeId);
 }
