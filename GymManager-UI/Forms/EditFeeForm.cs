@@ -15,11 +15,14 @@ public partial class EditFeeForm : Form
     private readonly Fee _fee;
 
     public EditFeeForm(IUserService userService, IFeeService feeService,
-        IPaymentService paymentService, Fee fee)
+        IPaymentService paymentService, IPaymentService cashPaymentService,
+        IPaymentService cardPaymentService, Fee fee)
     {
         _userService = userService;
         _feeService = feeService;
         _paymentService = paymentService;
+        _cashPaymentService = cashPaymentService;
+        _cardPaymentService = cardPaymentService;
         _fee = fee;
         InitializeComponent();
         LoadUsers();

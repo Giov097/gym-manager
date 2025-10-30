@@ -2,7 +2,6 @@ using GymManager_BE;
 using GymManager_BLL;
 using Microsoft.Extensions.Logging;
 using System.Windows.Forms.DataVisualization.Charting;
-using Microsoft.Reporting.WinForms;
 
 namespace GymManager.Forms;
 
@@ -13,9 +12,13 @@ public partial class MainForm : Form
     private readonly IUserService _userService;
     private readonly IUserService _xmlUserService;
     private readonly IFeeService _feeService;
+    private readonly IFeeService _xmlFeeService;
     private readonly IPaymentService _paymentService;
     private readonly IPaymentService _cashPaymentService;
     private readonly IPaymentService _cardPaymentService;
+    private readonly IPaymentService _xmlPaymentService;
+    private readonly IPaymentService _xmlCashPaymentService;
+    private readonly IPaymentService _xmlCardPaymentService;
     private readonly ILogger _logger;
 
     #endregion
@@ -37,18 +40,36 @@ public partial class MainForm : Form
 
     #endregion
 
+    private bool _xmlMode;
+
+    private IUserService ActiveUserService => _xmlMode ? _xmlUserService : _userService;
+    private IFeeService ActiveFeeService => _xmlMode ? _xmlFeeService : _feeService;
+    private IPaymentService ActivePaymentService => _xmlMode ? _xmlPaymentService : _paymentService;
+
+    private IPaymentService ActiveCashPaymentService =>
+        _xmlMode ? _xmlCashPaymentService : _cashPaymentService;
+
+    private IPaymentService ActiveCardPaymentService =>
+        _xmlMode ? _xmlCardPaymentService : _cardPaymentService;
+
     public MainForm(IUserService userService, IUserService xmlUserService, IFeeService feeService,
-        IPaymentService paymentService, IPaymentService cashPaymentService,
-        IPaymentService cardPaymentService)
+        IFeeService xmlFeeService, IPaymentService paymentService,
+        IPaymentService cashPaymentService,
+        IPaymentService cardPaymentService, IPaymentService xmlPaymentService,
+        IPaymentService xmlCashPaymentService,
+        IPaymentService xmlCardPaymentService)
     {
-        var factory = LoggerFactory.Create(builder => builder.AddConsole());
-        _logger = factory.CreateLogger("MainForm");
+        _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("MainForm");
         _userService = userService;
         _feeService = feeService;
         _paymentService = paymentService;
         _cashPaymentService = cashPaymentService;
         _cardPaymentService = cardPaymentService;
         _xmlUserService = xmlUserService;
+        _xmlFeeService = xmlFeeService;
+        _xmlPaymentService = xmlPaymentService;
+        _xmlCashPaymentService = xmlCashPaymentService;
+        _xmlCardPaymentService = xmlCardPaymentService;
         InitializeComponent();
         greetingLbl.Enabled = true;
         greetingLbl.Visible = true;
@@ -132,7 +153,7 @@ public partial class MainForm : Form
         };
         Task.Run(async () =>
         {
-            var users = await _userService.GetUsers();
+            var users = await ActiveUserService.GetUsers();
             Invoke(() =>
             {
                 userComboBox.Items.Clear();
@@ -239,7 +260,7 @@ public partial class MainForm : Form
                 break;
         }
 
-        chartGenerateBtn.Click += ChartGenerateBtn_Click!;
+        chartGenerateBtn.Click += ChartGenerateBtn_Click;
 
         chartMonthComboBox = new ComboBox
         {
@@ -303,13 +324,15 @@ public partial class MainForm : Form
         var initChartLabel = tabPageChart.Controls.OfType<Label>()
             .FirstOrDefault(l => l.Text == "Mes/Año:");
         if (initChartLabel != null) initChartLabel.Visible = !initialHide;
+
+        toggleXmlBtn.Click += ToggleXmlBtn_Click;
     }
 
     private async void MainForm_Load(object sender, EventArgs e)
     {
         try
         {
-            var users = await _userService.GetUsers();
+            var users = await ActiveUserService.GetUsers();
             FillUsersDataGrid(users);
         }
         catch (Exception exception)
@@ -320,7 +343,7 @@ public partial class MainForm : Form
 
         try
         {
-            var fees = await _feeService.GetFees();
+            var fees = await ActiveFeeService.GetFees();
 
             FillFeesDataGrid(fees);
         }
@@ -388,7 +411,7 @@ public partial class MainForm : Form
                 feesGridView.Columns[e.ColumnIndex].Name == "ViewUser")
             {
                 var feeId = (long)feesGridView.Rows[e.RowIndex].Cells["Id"].Value;
-                var user = await _userService.GetUserByFeeId(feeId);
+                var user = await ActiveUserService.GetUserByFeeId(feeId);
 
                 var userForm = new UserDetailsForm(user);
                 userForm.ShowDialog();
@@ -409,10 +432,10 @@ public partial class MainForm : Form
             if (createForm.ShowDialog() == DialogResult.OK)
             {
                 var newUser = createForm.CreatedUser;
-                await _userService.CreateUser(newUser!);
+                await ActiveUserService.CreateUser(newUser!);
                 MessageBox.Show("Usuario creado con éxito", SuccessCaption,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
-                var users = await _userService.GetUsers();
+                var users = await ActiveUserService.GetUsers();
                 FillUsersDataGrid(users);
             }
         }
@@ -429,16 +452,16 @@ public partial class MainForm : Form
         {
             if (usersGridView.CurrentRow == null) return;
             var userId = (long)usersGridView.CurrentRow.Cells["Id"].Value;
-            var user = await _userService.GetUserById(userId);
+            var user = await ActiveUserService.GetUserById(userId);
 
             var editForm = new EditUserForm(user);
             if (editForm.ShowDialog() == DialogResult.OK)
             {
                 var editedUser = editForm.EditedUser;
-                await _userService.UpdateUser(userId, editedUser);
+                await ActiveUserService.UpdateUser(userId, editedUser);
                 MessageBox.Show("Usuario modificado con éxito", SuccessCaption,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
-                var users = await _userService.GetUsers();
+                var users = await ActiveUserService.GetUsers();
                 FillUsersDataGrid(users);
             }
         }
@@ -449,17 +472,45 @@ public partial class MainForm : Form
         }
     }
 
+    private async void ToggleXmlBtn_Click(object? sender, EventArgs e)
+    {
+        _logger.LogInformation("Switching mode. XML: {XmlMode}", _xmlMode);
+        try
+        {
+            _xmlMode = !_xmlMode;
+            UpdateXmlModeUI();
+
+            var users = await ActiveUserService.GetUsers();
+            var fees = await ActiveFeeService.GetFees();
+            FillUsersDataGrid(users);
+            FillFeesDataGrid(fees);
+
+            _logger.LogInformation("Successfully switched mode. XML: {XmlMode}", _xmlMode);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al cambiar modo de usuarios: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void UpdateXmlModeUI()
+    {
+        toggleXmlBtn.Text = _xmlMode ? "Modo: XML" : "Modo: No XML";
+    }
+
     private async void RegisterFeeBtn_Click(object sender, EventArgs e)
     {
         try
         {
-            var registerForm = new RegisterFeeForm(_userService, _feeService, _paymentService,
-                _cashPaymentService, _cardPaymentService);
+            var registerForm = new RegisterFeeForm(ActiveUserService, ActiveFeeService,
+                ActivePaymentService,
+                ActiveCashPaymentService, ActiveCashPaymentService);
             if (registerForm.ShowDialog() == DialogResult.OK)
             {
                 MessageBox.Show("Cuota registrada con éxito", SuccessCaption,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
-                var fees = await _feeService.GetFees();
+                var fees = await ActiveFeeService.GetFees();
                 FillFeesDataGrid(fees);
             }
         }
@@ -476,19 +527,22 @@ public partial class MainForm : Form
         {
             if (feesGridView.CurrentRow == null) return;
             var feeId = (long)feesGridView.CurrentRow.Cells["Id"].Value;
-            var fee = await _feeService.GetFeeById(feeId);
+            var fee = await ActiveFeeService.GetFeeById(feeId);
 
-            var editForm = new EditFeeForm(_userService, _feeService, _paymentService, fee);
+            var editForm =
+                new EditFeeForm(ActiveUserService, ActiveFeeService, ActivePaymentService,
+                    ActiveCashPaymentService, ActiveCardPaymentService, fee);
             if (editForm.ShowDialog() == DialogResult.OK)
             {
                 MessageBox.Show("Cuota modificada con éxito", SuccessCaption,
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
-                var fees = await _feeService.GetFees();
+                var fees = await ActiveFeeService.GetFees();
                 FillFeesDataGrid(fees);
             }
         }
         catch (Exception ex)
         {
+            _logger.LogError("Error al editar la cuota: {}", ex);
             MessageBox.Show($"Error al editar la cuota: {ex.Message}", ErrorCaption,
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -507,7 +561,8 @@ public partial class MainForm : Form
                 rolesTxt.Text = string.Join(", ", user.UserRoles.Select(r => r.GetRoleName()));
 
                 var fees =
-                    await _feeService.SearchFees(DateOnly.MinValue, DateOnly.MaxValue, user.Id);
+                    await ActiveFeeService.SearchFees(DateOnly.MinValue, DateOnly.MaxValue,
+                        user.Id);
                 feesUserGridView.DataSource = fees.Select(f => new
                 {
                     De = f.StartDate,
@@ -517,7 +572,7 @@ public partial class MainForm : Form
                 }).ToList();
 
                 var payments =
-                    await _paymentService.SearchPayments(DateOnly.MinValue, DateOnly.MaxValue,
+                    await ActivePaymentService.SearchPayments(DateOnly.MinValue, DateOnly.MaxValue,
                         user.Id);
                 paymentsUserGridView.DataSource = payments.Select(p => new
                 {
@@ -590,7 +645,7 @@ public partial class MainForm : Form
         var to = DateOnly.FromDateTime(toDatePicker.Value.Date);
         var method = methodComboBox?.SelectedItem?.ToString();
 
-        var payments = await _paymentService.SearchPayments(from, to, 0);
+        var payments = await ActivePaymentService.SearchPayments(from, to, 0);
 
         IEnumerable<object> filteredPayments;
         if (method == Efectivo)
@@ -666,7 +721,7 @@ public partial class MainForm : Form
         var from = new DateOnly(year, month, 1);
         var to = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
 
-        var payments = await _paymentService.SearchPayments(from, to, 0);
+        var payments = await ActivePaymentService.SearchPayments(from, to, 0);
         var total = payments.Sum(p => p.Amount);
 
         reportGridView.DataSource = new[]
@@ -727,7 +782,7 @@ public partial class MainForm : Form
 
         await _userService.GetUserById(userId);
         var pagos =
-            await _paymentService.SearchPayments(DateOnly.MinValue, DateOnly.MaxValue, userId);
+            await ActivePaymentService.SearchPayments(DateOnly.MinValue, DateOnly.MaxValue, userId);
 
         var pagosList = pagos.Select(p => new
         {
@@ -753,7 +808,7 @@ public partial class MainForm : Form
         var from = DateOnly.FromDateTime(fromDatePicker.Value.Date);
         var to = DateOnly.FromDateTime(toDatePicker.Value.Date);
 
-        var payments = await _paymentService.SearchPayments(from, to, 0);
+        var payments = await ActivePaymentService.SearchPayments(from, to, 0);
 
         var pagosList = payments.Select(p => new
         {
@@ -804,7 +859,7 @@ public partial class MainForm : Form
                     {
                         var from = new DateOnly(year, 1, 1);
                         var to = new DateOnly(year, 12, 31);
-                        var payments = await _paymentService.SearchPayments(from, to, 0);
+                        var payments = await ActivePaymentService.SearchPayments(from, to, 0);
 
                         var grouped = payments
                             .GroupBy(p => p.PaymentDate.Month)
@@ -837,7 +892,7 @@ public partial class MainForm : Form
                         var month = monthIndex;
                         var from = new DateOnly(year, month, 1);
                         var to = new DateOnly(year, month, DateTime.DaysInMonth(year, month));
-                        var payments = await _paymentService.SearchPayments(from, to, 0);
+                        var payments = await ActivePaymentService.SearchPayments(from, to, 0);
                         var total = payments.Sum(p => p.Amount);
 
                         var s = new Series("Recaudación")

@@ -1,8 +1,7 @@
 using System.Xml.Linq;
 using System.Globalization;
 using GymManager_BE;
-using System;
-using System.IO;
+using Microsoft.Extensions.Logging;
 
 namespace GymManager_MPP;
 
@@ -10,6 +9,10 @@ public class XmlFeeMapper : IMapper<Fee, long>
 {
     private readonly string _filePath;
     private readonly object _fileLock = new();
+
+    private readonly ILogger _iLogger = LoggerFactory
+        .Create(builder => builder.AddConsole())
+        .CreateLogger("XmlFeeMapper");
 
     public XmlFeeMapper(string? filePath = null)
     {
@@ -33,7 +36,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[XmlFeeMapper] Error en EnsureFile(): {ex}");
+                _iLogger.LogError(ex, "[XmlFeeMapper] Error en EnsureFile()");
                 throw;
             }
         }
@@ -49,7 +52,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[XmlFeeMapper] Error en LoadDoc(): {ex}");
+                _iLogger.LogError(ex, "[XmlFeeMapper] Error en LoadDoc()");
                 throw;
             }
         }
@@ -65,7 +68,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[XmlFeeMapper] Error en SaveDoc(): {ex}");
+                _iLogger.LogError(ex, "[XmlFeeMapper] Error en SaveDoc()");
                 throw;
             }
         }
@@ -78,6 +81,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
     private const string Id = "id";
     private const string UserId = "UserId";
     private const string Fees = "Fees";
+    private const string User = "User";
     private const string Fee = "Fee";
     private const string StartDate = "StartDate";
     private const string EndDate = "EndDate";
@@ -103,22 +107,30 @@ public class XmlFeeMapper : IMapper<Fee, long>
         try
         {
             var doc = LoadDoc();
-            var root = doc.Root ?? new XElement(Fees);
+            var root = doc.Root;
 
-            var maxId = root.Elements(Fee)
+            var maxId = root!.Descendants(Fee)
                 .Select(x => (long?)x.Attribute(Id) ?? 0)
                 .DefaultIfEmpty(0)
                 .Max();
             var newId = maxId + 1;
             obj.Id = newId;
 
-            root.Add(FeeToXElement(obj, userId));
+            var user = root.Descendants(User)
+                .FirstOrDefault(u => (long?)u.Attribute("id") == userId);
+
+            if (user == null)
+            {
+                throw new Exception($"User with ID {userId} not found.");
+            }
+
+            user.Element(Fees)!.Add(FeeToXElement(obj));
             SaveDoc(doc);
             return Task.FromResult(obj);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlFeeMapper] Error en Create(...): {ex}");
+            _iLogger.LogError(ex, "[XmlFeeMapper] Error en Create(...)");
             throw;
         }
     }
@@ -129,7 +141,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
         {
             var doc = LoadDoc();
             var elem = doc.Root?
-                .Elements(Fee)
+                .Descendants(Fee)
                 .FirstOrDefault(x => (long?)x.Attribute(Id) == id);
 
             if (elem == null) return Task.FromResult<Fee?>(null);
@@ -137,7 +149,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlFeeMapper] Error en GetById({id}): {ex}");
+            _iLogger.LogError(ex, "[XmlFeeMapper] Error en GetById({id})", id);
             throw;
         }
     }
@@ -148,14 +160,14 @@ public class XmlFeeMapper : IMapper<Fee, long>
         {
             var doc = LoadDoc();
             var list = doc.Root?
-                .Elements(Fee)
+                .Descendants(Fee)
                 .Select(XElementToFee)
                 .ToList() ?? [];
             return Task.FromResult(list);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlFeeMapper] Error en GetAll(): {ex}");
+            _iLogger.LogError(ex, "[XmlFeeMapper] Error en GetAll()");
             throw;
         }
     }
@@ -166,7 +178,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
         {
             var doc = LoadDoc();
             var root = doc.Root;
-            var elem = root?.Elements(Fee).FirstOrDefault(x => (long?)x.Attribute(Id) == id);
+            var elem = root?.Descendants(Fee).FirstOrDefault(x => (long?)x.Attribute(Id) == id);
             if (elem == null) return Task.FromResult(false);
             elem.Remove();
             SaveDoc(doc);
@@ -174,7 +186,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlFeeMapper] Error en Delete({id}): {ex}");
+            _iLogger.LogError(ex, "[XmlFeeMapper] Error en Delete({id})", id);
             throw;
         }
     }
@@ -185,7 +197,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
         {
             var doc = LoadDoc();
             var root = doc.Root;
-            var elem = root?.Elements(Fee).FirstOrDefault(x => (long?)x.Attribute(Id) == obj.Id);
+            var elem = root?.Descendants(Fee).FirstOrDefault(x => (long?)x.Attribute(Id) == obj.Id);
             if (elem == null) return Task.FromResult(false);
 
             elem.SetAttributeValue(Id, obj.Id);
@@ -204,7 +216,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlFeeMapper] Error en Update(Id={obj.Id}): {ex}");
+            _iLogger.LogError(ex, "[XmlFeeMapper] Error en Update(Id={Id})", obj.Id);
             throw;
         }
     }
@@ -215,7 +227,7 @@ public class XmlFeeMapper : IMapper<Fee, long>
         {
             var doc = LoadDoc();
             var list = doc.Root?
-                .Elements(Fee)
+                .Descendants(Fee)
                 .Where(f => ((long?)f.Element("UserId") ?? 0) == userId)
                 .Select(XElementToFee)
                 .ToList() ?? [];
@@ -223,19 +235,19 @@ public class XmlFeeMapper : IMapper<Fee, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlFeeMapper] Error en GetByUserId({userId}): {ex}");
+            _iLogger.LogError(ex, "[XmlFeeMapper] Error en GetByUserId({userId})", userId);
             throw;
         }
     }
 
     #region BuildUtils
 
-    private static XElement FeeToXElement(Fee f, long userId)
+    private static XElement FeeToXElement(Fee f)
     {
         var nodes = new List<object>
         {
             new XAttribute(Id, f.Id),
-            new XElement(UserId, userId),
+            // new XElement(UserId, userId),
             new XElement(StartDate,
                 f.StartDate.ToString(DateFormat, CultureInfo.InvariantCulture)),
             new XElement(EndDate, f.EndDate.ToString(DateFormat, CultureInfo.InvariantCulture)),

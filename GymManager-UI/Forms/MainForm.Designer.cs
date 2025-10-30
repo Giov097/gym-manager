@@ -38,6 +38,7 @@ partial class MainForm
         deleteUsrBtn = new System.Windows.Forms.Button();
         editUserBtn = new System.Windows.Forms.Button();
         newUserBtn = new System.Windows.Forms.Button();
+        toggleXmlBtn = new System.Windows.Forms.Button();
         tabPage2 = new System.Windows.Forms.TabPage();
         editFeeBtn = new System.Windows.Forms.Button();
         registerFeeBtn = new System.Windows.Forms.Button();
@@ -396,12 +397,24 @@ partial class MainForm
         myDataTabControl.Controls.Add(tabPageChart);
 
         // 
+        // toggleXmlBtn
+        // 
+        toggleXmlBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+        toggleXmlBtn.Location = new System.Drawing.Point(560, 7);
+        toggleXmlBtn.Name = "toggleXmlBtn";
+        toggleXmlBtn.Size = new System.Drawing.Size(110, 23);
+        toggleXmlBtn.TabIndex = 5;
+        toggleXmlBtn.Text = "Modo: No XML";
+        toggleXmlBtn.UseVisualStyleBackColor = true;
+
+        // 
         // MainForm
         // 
         AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
         AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
         BackColor = System.Drawing.SystemColors.Control;
         ClientSize = new System.Drawing.Size(800, 450);
+        Controls.Add(toggleXmlBtn);
         Controls.Add(greetingLbl);
         Controls.Add(myDataTabControl);
         Location = new System.Drawing.Point(15, 15);
@@ -434,6 +447,8 @@ partial class MainForm
     private System.Windows.Forms.DataGridView feesGridView;
     private System.Windows.Forms.Button editFeeBtn;
     private System.Windows.Forms.Button registerFeeBtn;
+
+    private System.Windows.Forms.Button toggleXmlBtn;
 
      private System.Windows.Forms.Label nameLbl;
      private System.Windows.Forms.Label lastNameLbl;

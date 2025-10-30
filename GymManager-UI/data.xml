@@ -1,2 +1,53 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Users />
+<Users>
+  <User id="1">
+    <FirstName>Gero</FirstName>
+    <LastName>Giovenale</LastName>
+    <Email>gero.giovenale@gmail.com</Email>
+    <Password>fjh24RumQ+VqOHZhA63awQ==</Password>
+    <Roles>
+      <Role>Student</Role>
+    </Roles>
+    <Fees>
+      <Fee id="1">
+        <UserId>1</UserId>
+        <StartDate>2025-10-28</StartDate>
+        <EndDate>2025-11-28</EndDate>
+        <Amount>30000.00</Amount>
+        <Payment id="1">
+          <FeeId>1</FeeId>
+          <PaymentDate>2025-10-28</PaymentDate>
+          <Amount>30000</Amount>
+          <Status>Pagado</Status>
+          <Type>Cash</Type>
+          <ReceiptNumber>12345</ReceiptNumber>
+        </Payment>
+      </Fee>
+      <Fee id="2">
+        <StartDate>2025-10-29</StartDate>
+        <EndDate>2025-11-29</EndDate>
+        <Amount>29000.00</Amount>
+        <Payment id="2">
+          <PaymentDate>2025-10-29</PaymentDate>
+          <Amount>29000</Amount>
+          <Status>Pagado</Status>
+          <Type>Card</Type>
+          <CardBrand>Visa</CardBrand>
+          <CardLast4>1324</CardLast4>
+        </Payment>
+        <Payment />
+      </Fee>
+    </Fees>
+  </User>
+  <User id="2">
+    <FirstName>GeroIng</FirstName>
+    <LastName>GiovenaleIng</LastName>
+    <Email>geronimo.giovenale@ingenia.la</Email>
+    <Password>p8/xct1gAvvZ3SP2tiJcBA==</Password>
+    <Roles>
+      <Role>Admin</Role>
+      <Role>Trainer</Role>
+    </Roles>
+    <Fees />
+  </User>
+</Users>

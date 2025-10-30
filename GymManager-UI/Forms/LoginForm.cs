@@ -53,7 +53,9 @@ public partial class LoginForm : Form
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
             SessionManager.CurrentUser = user;
             var mainForm = new MainForm(new UserService(), new XmlUserService(), new FeeService(),
-                new PaymentService(), new CashPaymentService(), new CardPaymentService());
+                new XmlFeeService(),
+                new PaymentService(), new CashPaymentService(), new CardPaymentService(),
+                new XmlPaymentService(), new XmlCashPaymentService(), new XmlCardPaymentService());
             mainForm.FormClosed += (_, _) => Close();
             mainForm.Show();
             Hide();

@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using System.Globalization;
 using GymManager_BE;
+using Microsoft.Extensions.Logging;
 
 namespace GymManager_MPP;
 
@@ -8,6 +9,10 @@ public class XmlUserMapper : IMapper<User, long>
 {
     private readonly string _filePath;
     private readonly object _fileLock = new();
+
+    private readonly ILogger _iLogger = LoggerFactory
+        .Create(builder => builder.AddConsole())
+        .CreateLogger("XmlUserMapper");
 
     public XmlUserMapper(string? filePath = null)
     {
@@ -31,7 +36,7 @@ public class XmlUserMapper : IMapper<User, long>
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[XmlUserMapper] Error en EnsureFile(): {ex}");
+                _iLogger.LogError(ex, "[XmlUserMapper] Error en EnsureFile()");
                 throw;
             }
         }
@@ -47,7 +52,7 @@ public class XmlUserMapper : IMapper<User, long>
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[XmlUserMapper] Error en LoadDoc(): {ex}");
+                _iLogger.LogError(ex, "[XmlUserMapper] Error en LoadDoc()");
                 throw;
             }
         }
@@ -63,7 +68,7 @@ public class XmlUserMapper : IMapper<User, long>
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[XmlUserMapper] Error en SaveDoc(): {ex}");
+                _iLogger.LogError(ex, "[XmlUserMapper] Error en SaveDoc()");
                 throw;
             }
         }
@@ -136,7 +141,7 @@ public class XmlUserMapper : IMapper<User, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlUserMapper] Error en Create(...): {ex}");
+            _iLogger.LogError(ex, "[XmlUserMapper] Error en Create()");
             throw;
         }
     }
@@ -155,7 +160,7 @@ public class XmlUserMapper : IMapper<User, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlUserMapper] Error en GetById({id}): {ex}");
+            _iLogger.LogError(ex, "[XmlUserMapper] Error en GetById({id})", id);
             throw;
         }
     }
@@ -175,7 +180,7 @@ public class XmlUserMapper : IMapper<User, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlUserMapper] Error en GetByEmail({email}): {ex}");
+            _iLogger.LogError(ex, "[XmlUserMapper] Error en GetByEmail({email})", email);
             throw;
         }
     }
@@ -196,7 +201,7 @@ public class XmlUserMapper : IMapper<User, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlUserMapper] Error en GetByFeeId({feeId}): {ex}");
+            _iLogger.LogError(ex, "[XmlUserMapper] Error en GetByFeeId({feeId})", feeId);
             throw;
         }
     }
@@ -214,7 +219,7 @@ public class XmlUserMapper : IMapper<User, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlUserMapper] Error en GetAll(): {ex}");
+            _iLogger.LogError(ex, "[XmlUserMapper] Error en GetAll()");
             throw;
         }
     }
@@ -233,7 +238,7 @@ public class XmlUserMapper : IMapper<User, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlUserMapper] Error en Delete({id}): {ex}");
+            _iLogger.LogError(ex, "[XmlUserMapper] Error en Delete({id})", id);
             throw;
         }
     }
@@ -270,7 +275,7 @@ public class XmlUserMapper : IMapper<User, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlUserMapper] Error en Update(Id={obj.Id}): {ex}");
+            _iLogger.LogError(ex, "[XmlUserMapper] Error en Update(Id={Id})", obj.Id);
             throw;
         }
     }

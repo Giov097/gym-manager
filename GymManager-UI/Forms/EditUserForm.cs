@@ -1,5 +1,3 @@
-// GymManager-UI/Forms/EditUserForm.cs
-
 using GymManager_BE;
 using GymManager_SEC;
 

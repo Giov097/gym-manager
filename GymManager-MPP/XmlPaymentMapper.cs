@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using System.Globalization;
 using GymManager_BE;
+using Microsoft.Extensions.Logging;
 
 namespace GymManager_MPP;
 
@@ -8,6 +9,10 @@ public class XmlPaymentMapper : IMapper<Payment, long>
 {
     private readonly string _filePath;
     private readonly object _fileLock = new();
+
+    private readonly ILogger _iLogger = LoggerFactory
+        .Create(builder => builder.AddConsole())
+        .CreateLogger("XmlPaymentMapper");
 
     public XmlPaymentMapper(string? filePath = null)
     {
@@ -31,7 +36,7 @@ public class XmlPaymentMapper : IMapper<Payment, long>
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[XmlPaymentMapper] Error en EnsureFile(): {ex}");
+                _iLogger.LogError(ex, "[XmlPaymentMapper] Error en EnsureFile()");
                 throw;
             }
         }
@@ -47,7 +52,7 @@ public class XmlPaymentMapper : IMapper<Payment, long>
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[XmlPaymentMapper] Error en LoadDoc(): {ex}");
+                _iLogger.LogError(ex, "[XmlPaymentMapper] Error en LoadDoc()");
                 throw;
             }
         }
@@ -63,7 +68,7 @@ public class XmlPaymentMapper : IMapper<Payment, long>
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[XmlPaymentMapper] Error en SaveDoc(): {ex}");
+                _iLogger.LogError(ex, "[XmlPaymentMapper] Error en SaveDoc()");
                 throw;
             }
         }
@@ -77,6 +82,7 @@ public class XmlPaymentMapper : IMapper<Payment, long>
     private const string Payments = "Payments";
     private const string PaymentElem = "Payment";
     private const string FeeId = "FeeId";
+    private const string Fees = "Fees";
     private const string PaymentDate = "PaymentDate";
     private const string Amount = "Amount";
     private const string Type = "Type";
@@ -98,23 +104,31 @@ public class XmlPaymentMapper : IMapper<Payment, long>
         try
         {
             var doc = LoadDoc();
-            var root = doc.Root ?? new XElement(Payments);
+            var root = doc.Root!;
 
-            var maxId = root.Elements(PaymentElem)
+            var maxId = root.Descendants(PaymentElem)
                 .Select(x => (long?)x.Attribute(Id) ?? 0)
                 .DefaultIfEmpty(0)
                 .Max();
             var newId = maxId + 1;
             obj.Id = newId;
 
-            root.Add(PaymentToXElement(obj, feeId));
+            var fee = root.Descendants(Fees)
+                .Elements("Fee")
+                .FirstOrDefault(f => (long?)f.Attribute("id") == feeId);
+
+            if (fee == null)
+            {
+                throw new Exception($"Fee with id {feeId} not found.");
+            }
+
+            fee.Add(PaymentToXElement(obj));
             SaveDoc(doc);
             return Task.FromResult(obj);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine(
-                $"[XmlPaymentMapper] Error en Create(..., feeId={feeId}): {ex}");
+            _iLogger.LogError(ex, "[XmlPaymentMapper] Error en Create(..., feeId={feeId})", feeId);
             throw;
         }
     }
@@ -125,15 +139,16 @@ public class XmlPaymentMapper : IMapper<Payment, long>
         {
             var doc = LoadDoc();
             var elem = doc.Root?
-                .Elements(PaymentElem)
+                .Descendants(PaymentElem)
                 .FirstOrDefault(x => (long?)x.Attribute(Id) == id);
 
-            if (elem == null) return Task.FromResult<Payment?>(null);
-            return Task.FromResult<Payment?>(XElementToPayment(elem));
+            return elem == null
+                ? Task.FromResult<Payment?>(null)
+                : Task.FromResult<Payment?>(XElementToPayment(elem));
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlPaymentMapper] Error en GetById({id}): {ex}");
+            _iLogger.LogError(ex, "[XmlPaymentMapper] Error en GetById({id})", id);
             throw;
         }
     }
@@ -144,14 +159,14 @@ public class XmlPaymentMapper : IMapper<Payment, long>
         {
             var doc = LoadDoc();
             var list = doc.Root?
-                .Elements(PaymentElem)
+                .Descendants(PaymentElem)
                 .Select(XElementToPayment)
-                .ToList() ?? new List<Payment>();
+                .ToList() ?? [];
             return Task.FromResult(list);
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlPaymentMapper] Error en GetAll(): {ex}");
+            _iLogger.LogError(ex, "[XmlPaymentMapper] Error en GetAll()");
             throw;
         }
     }
@@ -162,7 +177,7 @@ public class XmlPaymentMapper : IMapper<Payment, long>
         {
             var doc = LoadDoc();
             var root = doc.Root;
-            var elem = root?.Elements(PaymentElem)
+            var elem = root?.Descendants(PaymentElem)
                 .FirstOrDefault(x => (long?)x.Attribute(Id) == obj.Id);
             if (elem == null) return Task.FromResult(false);
 
@@ -194,7 +209,7 @@ public class XmlPaymentMapper : IMapper<Payment, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlPaymentMapper] Error en Update(Id={obj.Id}): {ex}");
+            _iLogger.LogError(ex, "[XmlPaymentMapper] Error en Update(Id={Id})", obj.Id);
             throw;
         }
     }
@@ -205,7 +220,7 @@ public class XmlPaymentMapper : IMapper<Payment, long>
         {
             var doc = LoadDoc();
             var root = doc.Root;
-            var elem = root?.Elements(PaymentElem)
+            var elem = root?.Descendants(PaymentElem)
                 .FirstOrDefault(x => (long?)x.Attribute(Id) == id);
             if (elem == null) return Task.FromResult(false);
             elem.Remove();
@@ -214,7 +229,7 @@ public class XmlPaymentMapper : IMapper<Payment, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[XmlPaymentMapper] Error en Delete({id}): {ex}");
+            _iLogger.LogError(ex, "[XmlPaymentMapper] Error en Delete({id})", id);
             throw;
         }
     }
@@ -227,7 +242,7 @@ public class XmlPaymentMapper : IMapper<Payment, long>
             var doc = LoadDoc();
             if (doc.Root == null) return Task.FromResult(payments);
 
-            var elems = doc.Root.Elements(PaymentElem).AsEnumerable();
+            var elems = doc.Root.Descendants(PaymentElem).AsEnumerable();
 
             if (from != default)
             {
@@ -274,20 +289,20 @@ public class XmlPaymentMapper : IMapper<Payment, long>
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine(
-                $"[XmlPaymentMapper] Error en Search(from={from}, to={to}, userId={userId}): {ex}");
+            _iLogger.LogError(ex,
+                "[XmlPaymentMapper] Error en Search(from={from}, to={to}, userId={userId})", from,
+                to, userId);
             throw;
         }
     }
 
     #region BuildUtils
 
-    private static XElement PaymentToXElement(Payment p, long feeId)
+    private static XElement PaymentToXElement(Payment p)
     {
         var nodes = new List<object>
         {
             new XAttribute(Id, p.Id),
-            new XElement(FeeId, feeId),
             new XElement(PaymentDate,
                 p.PaymentDate.ToString(DateFormat, CultureInfo.InvariantCulture)),
             new XElement(Amount, p.Amount.ToString(CultureInfo.InvariantCulture)),
