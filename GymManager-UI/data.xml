@@ -48,6 +48,13 @@
       <Role>Admin</Role>
       <Role>Trainer</Role>
     </Roles>
-    <Fees />
+    <Fees>
+      <Fee id="3">
+        <StartDate>2025-10-29</StartDate>
+        <EndDate>2025-11-29</EndDate>
+        <Amount>12000</Amount>
+        <Payment />
+      </Fee>
+    </Fees>
   </User>
 </Users>

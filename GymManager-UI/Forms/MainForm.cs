@@ -229,6 +229,24 @@ public partial class MainForm : Form
                     break;
             }
         };
+
+        chartComboBox.SelectedIndexChanged += (_, _) =>
+        {
+            reportChart.Controls.Clear();
+
+            switch (chartComboBox.SelectedItem?.ToString())
+            {
+                case "Recaudación mensual":
+                    tabPageChart.Controls.Add(chartMonthComboBox);
+                    tabPageChart.Controls.Add(chartYearComboBox);
+                    break;
+                case "Alumnos con más deuda":
+                default:
+                    break;
+            }
+        };
+
+
         reportParamsPanel.Controls.Clear();
         switch (reportTypeComboBox.SelectedItem?.ToString())
         {
@@ -262,68 +280,16 @@ public partial class MainForm : Form
 
         chartGenerateBtn.Click += ChartGenerateBtn_Click;
 
-        chartMonthComboBox = new ComboBox
-        {
-            Location = new Point(20, 50),
-            Size = new Size(140, 23),
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
-        chartMonthComboBox.Items.Add("Todo el año");
-        for (var m = 1; m <= 12; m++)
-            chartMonthComboBox.Items.Add(new DateTime(1, m, 1).ToString("MMMM"));
-        chartMonthComboBox.SelectedIndex = 0;
-
-        chartYearComboBox = new ComboBox
-        {
-            Location = new Point(180, 50),
-            Size = new Size(100, 23),
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
-        for (var y = currentYear - 5; y <= currentYear + 1; y++)
-            chartYearComboBox.Items.Add(y);
-        chartYearComboBox.SelectedItem = currentYear;
-
-        tabPageChart.Controls.Add(new Label
-            { Text = "Mes/Año:", Location = new Point(20, 30), AutoSize = true });
-        tabPageChart.Controls.Add(chartMonthComboBox);
-        tabPageChart.Controls.Add(chartYearComboBox);
-
-
-        viewerMonthComboBox = new ComboBox
-        {
-            Location = new Point(20, 50),
-            Size = new Size(140, 23),
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
-        viewerMonthComboBox.Items.Add("Todo el año");
-        for (var m = 1; m <= 12; m++)
-            viewerMonthComboBox.Items.Add(new DateTime(1, m, 1).ToString("MMMM"));
-        viewerMonthComboBox.SelectedIndex = 0;
-
-        viewerYearComboBox = new ComboBox
-        {
-            Location = new Point(180, 50),
-            Size = new Size(100, 23),
-            DropDownStyle = ComboBoxStyle.DropDownList
-        };
-        for (var y = currentYear - 5; y <= currentYear + 1; y++)
-            viewerYearComboBox.Items.Add(y);
-        viewerYearComboBox.SelectedItem = currentYear;
-
-
-        reportChart.Location = new Point(20, 90);
-        reportChart.Size = new Size(720, 300);
-        reportChart.SendToBack();
-
-        var initialHide = reportTypeComboBox.SelectedItem?.ToString() == "Alumnos con más deuda";
-        if (chartMonthComboBox != null) chartMonthComboBox.Visible = !initialHide;
-        if (chartYearComboBox != null) chartYearComboBox.Visible = !initialHide;
-        if (viewerMonthComboBox != null) viewerMonthComboBox.Visible = !initialHide;
-        if (viewerYearComboBox != null) viewerYearComboBox.Visible = !initialHide;
-
-        var initChartLabel = tabPageChart.Controls.OfType<Label>()
-            .FirstOrDefault(l => l.Text == "Mes/Año:");
-        if (initChartLabel != null) initChartLabel.Visible = !initialHide;
+        //
+        // var initialHide = reportTypeComboBox.SelectedItem?.ToString() == "Alumnos con más deuda";
+        // if (chartMonthComboBox != null) chartMonthComboBox.Visible = !initialHide;
+        // if (chartYearComboBox != null) chartYearComboBox.Visible = !initialHide;
+        // if (viewerMonthComboBox != null) viewerMonthComboBox.Visible = !initialHide;
+        // if (viewerYearComboBox != null) viewerYearComboBox.Visible = !initialHide;
+        //
+        // var initChartLabel = tabPageChart.Controls.OfType<Label>()
+        //     .FirstOrDefault(l => l.Text == "Mes/Año:");
+        // if (initChartLabel != null) initChartLabel.Visible = !initialHide;
 
         toggleXmlBtn.Click += ToggleXmlBtn_Click;
     }
@@ -686,7 +652,7 @@ public partial class MainForm : Form
 
     private async Task HandleUsersWithMostDebt()
     {
-        var users = await _userService.GetUsers();
+        var users = await ActiveUserService.GetUsers();
 
         var debts = users.Select(u =>
             {
@@ -911,7 +877,7 @@ public partial class MainForm : Form
                 }
                 case "Alumnos con más deuda":
                 {
-                    var users = await _userService.GetUsers();
+                    var users = await ActiveUserService.GetUsers();
                     var debts = users.Select(u =>
                         {
                             var deuda = u.Fees.Sum(f =>
