@@ -65,18 +65,26 @@ public sealed class DataAccessDisconnected : IDisconnectedDataAccess
             if (_sqlConnection.State == ConnectionState.Closed)
                 await _sqlConnection.OpenAsync();
 
-            var table = dataSet.Tables[0];
-            if (string.IsNullOrWhiteSpace(table.TableName))
-                throw new DatabaseException(
-                    "La tabla del DataSet no tiene TableName. Asigne TableName antes de llamar a Write.",
-                    null!);
+            var affectedRows = 0;
 
-            using var adapter =
-                new SqlDataAdapter($"SELECT * FROM [{table.TableName}]", _sqlConnection);
-            adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
-            using var builder = new SqlCommandBuilder(adapter);
+            foreach (DataTable table in dataSet.Tables)
+            {
+                _logger.LogInformation(
+                    "Preparing to write table: {TableName}",
+                    table.TableName);
+                if (string.IsNullOrWhiteSpace(table.TableName))
+                    throw new DatabaseException(
+                        "La tabla del DataSet no tiene TableName. Asigne TableName antes de llamar a Write.",
+                        null!);
 
-            var affectedRows = adapter.Update(table);
+                using var adapter =
+                    new SqlDataAdapter($"SELECT * FROM [{table.TableName}]", _sqlConnection);
+                adapter.MissingSchemaAction = MissingSchemaAction.AddWithKey;
+                using var builder = new SqlCommandBuilder(adapter);
+
+                affectedRows += adapter.Update(table);
+            }
+
             return affectedRows;
         }
         catch (Exception ex)

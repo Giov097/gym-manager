@@ -506,61 +506,113 @@ public partial class MainForm : Form
         if (_usersDataSet != null && _usersTable != null) return;
         try
         {
-            const string query = """
-                                 SELECT
-                                     u.id,
-                                     u.first_name,
-                                     u.last_name,
-                                     u.email,
-                                     u.password,
-                                     u.active,
-                                     COALESCE(
-                                         STRING_AGG(
-                                             CASE
-                                                 WHEN r.role_name = 'Student' THEN 'ALUMNO'
-                                                 WHEN r.role_name = 'Trainer' THEN 'ENTRENADOR'
-                                                 WHEN r.role_name = 'Admin' THEN 'ADMINISTRADOR'
-                                                 ELSE 'ALUMNO'
-                                             END, ', '
-                                         ), 'ALUMNO'
-                                     ) as roles
-                                 FROM
-                                     users u
-                                 LEFT JOIN user_roles ur ON u.id = ur.user_id
-                                 LEFT JOIN roles r ON ur.role_id = r.id
-                                 GROUP BY
-                                     u.id, u.first_name, u.last_name, u.email, u.password, u.active
-                                 """;
-            _usersDataSet = await _disconnectedDataAccess.Read(
-                query, "Users");
+            const string usersQuery = """
+                                      SELECT
+                                          u.id,
+                                          u.first_name,
+                                          u.last_name,
+                                          u.email,
+                                          u.password,
+                                          u.active,
+                                          COALESCE(
+                                              STRING_AGG(
+                                                  CASE
+                                                      WHEN r.role_name = 'Student' THEN 'ALUMNO'
+                                                      WHEN r.role_name = 'Trainer' THEN 'ENTRENADOR'
+                                                      WHEN r.role_name = 'Admin' THEN 'ADMINISTRADOR'
+                                                      ELSE 'ALUMNO'
+                                                  END, ', '
+                                              ), 'ALUMNO'
+                                          ) as roles
+                                      FROM
+                                          users u
+                                      LEFT JOIN user_roles ur ON u.id = ur.user_id
+                                      LEFT JOIN roles r ON ur.role_id = r.id
+                                      GROUP BY
+                                          u.id, u.first_name, u.last_name, u.email, u.password, u.active
+                                      """;
+
+            const string rolesQuery = "SELECT id AS Id, role_name FROM roles";
+            const string userRolesQuery =
+                "SELECT user_id, role_id FROM user_roles";
+
+            var dsUsers = await _disconnectedDataAccess.Read(usersQuery, "Users");
+            var dsRoles = await _disconnectedDataAccess.Read(rolesQuery, "Roles");
+            var dsUserRoles = await _disconnectedDataAccess.Read(userRolesQuery, "User_Roles");
+
+            _usersDataSet = new DataSet("OfflineUsers");
+            _usersDataSet.Tables.Add(dsUsers.Tables["Users"]!.Copy());
+            _usersDataSet.Tables.Add(dsRoles.Tables["Roles"]!.Copy());
+            _usersDataSet.Tables.Add(dsUserRoles.Tables["User_Roles"]!.Copy());
+
             _usersTable = _usersDataSet.Tables["Users"];
-            if (_usersTable is { PrimaryKey.Length: 0 } && _usersTable.Columns.Contains("Id"))
-                _usersTable.PrimaryKey = [_usersTable.Columns["Id"]!];
-            if (_usersTable != null)
+            if (_usersTable!.PrimaryKey.Length == 0)
             {
-                if (_usersTable.Columns.Contains("first_name"))
-                    _usersTable.Columns["first_name"]!.Caption = "Nombre";
-                if (_usersTable.Columns.Contains("last_name"))
-                    _usersTable.Columns["last_name"]!.Caption = "Apellido";
-                if (_usersTable.Columns.Contains("email"))
-                    _usersTable.Columns["email"]!.Caption = "Correo Electrónico";
-                if (_usersTable.Columns.Contains("roles"))
-                    _usersTable.Columns["roles"]!.Caption = "Roles";
-                disconnectedUsersGridView.DataSource = _usersTable.DefaultView;
-                disconnectedUsersGridView.Columns["Roles"]!.ReadOnly = true;
-                if (disconnectedUsersGridView.Columns["first_name"] != null)
-                    disconnectedUsersGridView.Columns["first_name"]!.HeaderText = "Nombre";
-                if (disconnectedUsersGridView.Columns["last_name"] != null)
-                    disconnectedUsersGridView.Columns["last_name"]!.HeaderText = "Apellido";
-                if (disconnectedUsersGridView.Columns["email"] != null)
-                    disconnectedUsersGridView.Columns["email"]!.HeaderText = "Correo Electrónico";
-                if (disconnectedUsersGridView.Columns["roles"] != null)
-                    disconnectedUsersGridView.Columns["roles"]!.HeaderText = "Roles";
-                if (disconnectedUsersGridView.Columns["password"] != null)
-                    disconnectedUsersGridView.Columns["password"]!.Visible = false;
-                if (disconnectedUsersGridView.Columns["active"] != null)
-                    disconnectedUsersGridView.Columns["active"]!.Visible = false;
+                if (_usersTable.Columns.Contains("Id"))
+                    _usersTable.PrimaryKey = [_usersTable.Columns["Id"]!];
+                else if (_usersTable.Columns.Contains("id"))
+                    _usersTable.PrimaryKey = [_usersTable.Columns["id"]!];
             }
+
+            var idCol = _usersTable.Columns.Contains("Id") ? _usersTable.Columns["Id"] :
+                _usersTable.Columns.Contains("id") ? _usersTable.Columns["id"] : null;
+            if (idCol != null)
+            {
+                try
+                {
+                    if (!idCol.AutoIncrement)
+                    {
+                        idCol.AutoIncrement = true;
+                        idCol.AutoIncrementSeed = -1;
+                        idCol.AutoIncrementStep = -1;
+                        idCol.ReadOnly = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError("No se pudo habilitar AutoIncrement en Id: {}", ex.Message);
+                }
+            }
+
+            var rolesTable = _usersDataSet.Tables["Roles"];
+            if (rolesTable!.PrimaryKey.Length == 0)
+            {
+                if (rolesTable.Columns.Contains("Id"))
+                    rolesTable.PrimaryKey = [rolesTable.Columns["Id"]!];
+                else if (rolesTable.Columns.Contains("id"))
+                    rolesTable.PrimaryKey = [rolesTable.Columns["id"]!];
+            }
+
+            var urTable = _usersDataSet.Tables["User_Roles"];
+            if (urTable!.PrimaryKey.Length == 0 && urTable.Columns.Contains("User_Id") &&
+                urTable.Columns.Contains("Role_Id"))
+                urTable.PrimaryKey = [urTable.Columns["User_Id"]!, urTable.Columns["Role_Id"]!];
+
+            if (!_usersDataSet.Relations.Contains("User_UserRoles"))
+            {
+                var parentCol = _usersDataSet.Tables["Users"]!.Columns.Contains("Id")
+                    ? _usersDataSet.Tables["Users"]!.Columns["Id"]
+                    : _usersDataSet.Tables["Users"]!.Columns["id"];
+                var childCol = urTable.Columns["User_Id"];
+                _usersDataSet.Relations.Add("User_UserRoles", parentCol!, childCol!, false);
+            }
+
+            if (_usersTable.Columns.Contains("first_name"))
+                _usersTable.Columns["first_name"]!.Caption = "Nombre";
+            if (_usersTable.Columns.Contains("last_name"))
+                _usersTable.Columns["last_name"]!.Caption = "Apellido";
+            if (_usersTable.Columns.Contains("email"))
+                _usersTable.Columns["email"]!.Caption = "Correo Electrónico";
+            if (_usersTable.Columns.Contains("roles"))
+            {
+                _usersTable.Columns["roles"]!.Caption = "Roles";
+            }
+
+            disconnectedUsersGridView.DataSource = _usersTable.DefaultView;
+            if (disconnectedUsersGridView.Columns["password"] != null)
+                disconnectedUsersGridView.Columns["password"]!.Visible = false;
+            if (disconnectedUsersGridView.Columns["active"] != null)
+                disconnectedUsersGridView.Columns["active"]!.Visible = false;
         }
         catch (Exception ex)
         {
@@ -579,13 +631,13 @@ public partial class MainForm : Form
             FirstName = row["first_name"].ToString(),
             LastName = row["last_name"].ToString(),
             Email = row["email"].ToString(),
-            UserRoles = row["Roles"]!.ToString().Split(",").Select(UserRoleExtensions.FromRoleName)
+            UserRoles = row["Roles"].ToString()!.Split(",").Select(UserRoleExtensions.FromRoleName)
                 .ToList(),
             Password = row["password"].ToString()
         };
     }
 
-    private static void ApplyUserToDataRow(User u, DataRow row)
+    private void ApplyUserToDataRow(User u, DataRow row)
     {
         if (row.Table.Columns.Contains("first_name"))
             row["first_name"] = u.FirstName ?? (object)DBNull.Value;
@@ -595,7 +647,102 @@ public partial class MainForm : Form
         if (row.Table.Columns.Contains("Id") && u.Id > 0) row["Id"] = u.Id;
         if (row.Table.Columns.Contains("roles"))
             row["roles"] = string.Join(", ", u.UserRoles!.Select(r => r.GetRoleName()));
+        if (row.Table.Columns.Contains("Password"))
+            row["Password"] = u.Password ?? (object)DBNull.Value;
+
+
+        var urTable = _usersDataSet!.Tables["User_Roles"]!;
+        var rolesTable = _usersDataSet!.Tables["Roles"]!;
+
+        long userId;
+        if (u.Id > 0) userId = u.Id;
+        // else if (row.Table.Columns.Contains("Id") && row["Id"] != DBNull.Value)
+        //     userId = Convert.ToInt64(row["Id"]);
+        else
+        {
+            const string key = "PendingUserRolesByRow";
+            if (!row.Table.ExtendedProperties.ContainsKey(key))
+                row.Table.ExtendedProperties[key] = new Dictionary<string, List<string>>();
+
+            var pendingDict = (Dictionary<string, List<string>>)row.Table.ExtendedProperties[key]!;
+            pendingDict[u.Email!] = u.UserRoles?.Select(r => r.GetRoleName())
+                                        .Where(s => !string.IsNullOrEmpty(s)).ToList()
+                                    ?? [];
+            return;
+        }
+
+        try
+        {
+            var existing = urTable.Select($"user_id = {userId}");
+            foreach (var ex in existing)
+                ex.Delete();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error deleting row: {}", ex.Message);
+        }
+
+        if (u.UserRoles != null)
+        {
+            foreach (var userRole in u.UserRoles)
+            {
+                var roleName = userRole.ToString();
+
+                DataRow[] found;
+                try
+                {
+                    found = rolesTable.Select($"role_name = '{roleName}'");
+                }
+                catch
+                {
+                    found = rolesTable.Select();
+                    found = found.Where(r =>
+                    {
+                        var val = r.Table.Columns.Contains("role_name")
+                            ? r["role_name"]
+                            : (r.Table.Columns.Contains("RoleName") ? r["RoleName"] : null);
+                        return val != null && string.Equals(val.ToString(), roleName,
+                            StringComparison.OrdinalIgnoreCase);
+                    }).ToArray();
+                }
+
+                if (found.Length == 0) continue;
+                var roleRow = found[0];
+
+                object roleIdObj = null;
+                if (roleRow.Table.Columns.Contains("Id")) roleIdObj = roleRow["Id"];
+                else if (roleRow.Table.Columns.Contains("id")) roleIdObj = roleRow["id"];
+                else if (roleRow.Table.Columns.Contains("role_id")) roleIdObj = roleRow["role_id"];
+
+                if (roleIdObj == null || roleIdObj == DBNull.Value) continue;
+
+                long roleId;
+                try
+                {
+                    roleId = Convert.ToInt64(roleIdObj);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                var newUr = urTable.NewRow();
+
+                if (urTable.Columns.Contains("User_Id"))
+                {
+                    newUr["User_Id"] = userId;
+                }
+
+                if (urTable.Columns.Contains("Role_Id"))
+                {
+                    newUr["Role_Id"] = roleId;
+                }
+
+                urTable.Rows.Add(newUr);
+            }
+        }
     }
+
 
     private async void NewDisconnectedUserBtn_Click(object? sender, EventArgs e)
     {
@@ -683,9 +830,65 @@ public partial class MainForm : Form
         try
         {
             if (_usersDataSet == null) return;
+
+            var usersTable = _usersDataSet.Tables["Users"]!;
+            var urOriginal = _usersDataSet.Tables["UserRoles"]!;
+            var rolesTable = _usersDataSet.Tables["Roles"]!;
+
+            var pendingByRow = new Dictionary<string, List<string>>();
+            const string key = "PendingUserRolesByRow";
+            if (usersTable.ExtendedProperties.ContainsKey(key))
+            {
+                pendingByRow =
+                    (Dictionary<string, List<string>>)usersTable.ExtendedProperties[key]!;
+            }
+
+            _usersDataSet.Relations.Remove("User_UserRoles");
+            _usersDataSet.Tables.Remove("Roles");
+            _usersDataSet.Tables.Remove("User_Roles");
+
             var affected = await _disconnectedDataAccess.Write(_usersDataSet);
             MessageBox.Show($"Cambios guardados. Filas afectadas: {affected}", SuccessCaption,
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
+            _usersDataSet = null;
+            _usersTable = null;
+            await LoadDisconnectedUsers();
+
+            foreach (var kv in pendingByRow)
+            {
+                var email = kv.Key;
+                var rolesList = kv.Value;
+                if (string.IsNullOrEmpty(email)) continue;
+                var safeEmail = email.Replace("'", "''");
+                var foundUsers = _usersDataSet!.Tables["Users"]!.Select($"email = '{safeEmail}'");
+                if (foundUsers.Length == 0) continue;
+                var userRow = foundUsers[0];
+                if (userRow["Id"] == DBNull.Value) continue;
+                var userId = Convert.ToInt64(userRow["Id"]);
+
+                foreach (var roleName in rolesList)
+                {
+                    if (string.IsNullOrWhiteSpace(roleName)) continue;
+                    var safeRole = roleName.Replace("'", "''");
+                    var finalRole = UserRoleExtensions.FromRoleName(safeRole);
+                    var foundRoles = rolesTable.Select($"role_name = '{finalRole}'");
+                    if (foundRoles.Length == 0) continue;
+                    var roleIdObj = foundRoles[0]["Id"] ?? foundRoles[0]["id"];
+                    if (roleIdObj == null || roleIdObj == DBNull.Value) continue;
+                    var roleId = Convert.ToInt64(roleIdObj);
+
+                    var dataTable = _usersDataSet.Tables["User_Roles"]!;
+                    var newRow = dataTable.NewRow();
+                    if (dataTable.Columns.Contains("User_Id"))
+                        newRow["User_Id"] = userId;
+                    if (dataTable.Columns.Contains("Role_Id"))
+                        newRow["Role_Id"] = roleId;
+                    dataTable.Rows.Add(newRow);
+                }
+            }
+
+            await _disconnectedDataAccess.Write(_usersDataSet!);
+
             _usersDataSet = null;
             _usersTable = null;
             await LoadDisconnectedUsers();
@@ -1116,32 +1319,42 @@ public partial class MainForm : Form
         {
             if (_usersTable == null) return;
             var view = _usersTable.DefaultView;
-            if (disconnectedFilterFieldCmb == null || disconnectedFilterTxt == null)
+
+            var firstNameText = disconnectedFilterFirstNameTxt?.Text.Trim() ?? string.Empty;
+            var lastNameText = disconnectedFilterLastNameTxt?.Text.Trim() ?? string.Empty;
+            var emailText = disconnectedFilterEmailTxt?.Text.Trim() ?? string.Empty;
+            var rolesText = disconnectedFilterRolesTxt?.Text.Trim() ?? string.Empty;
+
+            var conditions = new List<string>();
+
+            string Escape(string s) => s.Replace("'", "''");
+
+            if (!string.IsNullOrEmpty(firstNameText) && _usersTable.Columns.Contains("first_name"))
             {
-                view.RowFilter = string.Empty;
-                return;
+                var safe = Escape(firstNameText);
+                conditions.Add($"Convert([first_name], 'System.String') LIKE '%{safe}%'");
             }
 
-            var sel = disconnectedFilterFieldCmb.SelectedItem?.ToString();
-            if (string.IsNullOrEmpty(sel))
+            if (!string.IsNullOrEmpty(lastNameText) && _usersTable.Columns.Contains("last_name"))
             {
-                view.RowFilter = string.Empty;
-                return;
+                var safe = Escape(lastNameText);
+                conditions.Add($"Convert([last_name], 'System.String') LIKE '%{safe}%'");
             }
 
-            var parts = sel.Split('|');
-            var columnName = parts.Length > 1 ? parts[1] : parts[0];
-            var text = disconnectedFilterTxt.Text.Trim() ?? string.Empty;
-
-            if (string.IsNullOrEmpty(text))
+            if (!string.IsNullOrEmpty(emailText) && _usersTable.Columns.Contains("email"))
             {
-                view.RowFilter = string.Empty;
-                return;
+                var safe = Escape(emailText);
+                conditions.Add($"Convert([email], 'System.String') LIKE '%{safe}%'");
             }
 
-            var safe = text.Replace("'", "''");
+            if (!string.IsNullOrEmpty(rolesText) && _usersTable.Columns.Contains("roles"))
+            {
+                var safe = Escape(rolesText);
+                conditions.Add($"Convert([roles], 'System.String') LIKE '%{safe}%'");
+            }
 
-            view.RowFilter = $"Convert([{columnName}], 'System.String') LIKE '%{safe}%'";
+            view.RowFilter =
+                conditions.Count == 0 ? string.Empty : string.Join(" AND ", conditions);
         }
         catch (Exception ex)
         {

@@ -479,7 +479,6 @@ partial class MainForm
         //
         // tabPageDisconnected
         //
-        tabPageDisconnected.Controls.Add(disconnectedTitleLbl);
         tabPageDisconnected.Controls.Add(disconnectedUsersGridView);
         tabPageDisconnected.Controls.Add(newDisconnectedUserBtn);
         tabPageDisconnected.Controls.Add(editDisconnectedUserBtn);
@@ -495,18 +494,9 @@ partial class MainForm
         tabPageDisconnected.UseVisualStyleBackColor = true;
 
         //
-        // disconnectedTitleLbl
-        //
-        disconnectedTitleLbl.Location = new System.Drawing.Point(10, 10);
-        disconnectedTitleLbl.Name = "disconnectedTitleLbl";
-        disconnectedTitleLbl.Size = new System.Drawing.Size(300, 23);
-        disconnectedTitleLbl.TabIndex = 0;
-        disconnectedTitleLbl.Text = "Usuarios (modo desconectado)";
-
-        //
         // disconnectedUsersGridView
         //
-        disconnectedUsersGridView.Location = new System.Drawing.Point(0, 40);
+        disconnectedUsersGridView.Location = new System.Drawing.Point(0, 48);
         disconnectedUsersGridView.Name = "disconnectedUsersGridView";
         disconnectedUsersGridView.Size = new System.Drawing.Size(768, 300);
         disconnectedUsersGridView.TabIndex = 1;
@@ -575,42 +565,65 @@ partial class MainForm
         saveDisconnectedBtn.UseVisualStyleBackColor = true;
         saveDisconnectedBtn.Click += new System.EventHandler(this.SaveDisconnectedBtn_Click);
         
-        disconnectedFilterFieldCmb = new ComboBox
+        var filterSize = new Size(120, 23);
+        disconnectedFilterFirstNameTxt = new TextBox
         {
             Location = new Point(10, 10),
-            Size = new Size(140, 23),
-            DropDownStyle = ComboBoxStyle.DropDownList
+            Size = filterSize,
+            Name = "disconnectedFilterFirstNameTxt",
+            TabIndex = 7,
+            PlaceholderText = "Nombre"
         };
-        
-        disconnectedFilterFieldCmb.Items.Add("Nombre|first_name");
-        disconnectedFilterFieldCmb.Items.Add("Apellido|last_name");
-        disconnectedFilterFieldCmb.Items.Add("Correo|email");
-        disconnectedFilterFieldCmb.Items.Add("Roles|roles");
-        disconnectedFilterFieldCmb.SelectedIndex = 0;
-
-        disconnectedFilterTxt = new TextBox
+        disconnectedFilterLastNameTxt = new TextBox
         {
-            Location = new Point(160, 10),
-            Size = new Size(240, 23)
+            Location = new Point(10 + (filterSize.Width + 10) * 1, 10),
+            Size = filterSize,
+            Name = "disconnectedFilterLastNameTxt",
+            TabIndex = 8,
+            PlaceholderText = "Apellido"
+        };
+        disconnectedFilterEmailTxt = new TextBox
+        {
+            Location = new Point(10 + (filterSize.Width + 10) * 2, 10),
+            Size = filterSize,
+            Name = "disconnectedFilterEmailTxt",
+            TabIndex = 9,
+            PlaceholderText = "Email"
+        };
+        disconnectedFilterRolesTxt = new TextBox
+        {
+            Location = new Point(10 + (filterSize.Width + 10) * 3, 10),
+            Size = filterSize,
+            Name = "disconnectedFilterRolesTxt",
+            TabIndex = 10,
+            PlaceholderText = "Roles"
         };
 
         disconnectedClearFilterBtn = new Button
         {
-            Location = new Point(410, 9),
-            Size = new Size(75, 24),
-            Text = "Limpiar"
+            Location = new Point(10 + (filterSize.Width + 10) * 4 + 10, 9),
+            Size = new Size(80, 24),
+            Text = "Limpiar",
+            Name = "disconnectedClearFilterBtn",
+            TabIndex = 11
         };
-        
-        tabPageDisconnected.Controls.Add(disconnectedFilterFieldCmb);
-        tabPageDisconnected.Controls.Add(disconnectedFilterTxt);
-        tabPageDisconnected.Controls.Add(disconnectedClearFilterBtn);
 
-        disconnectedFilterTxt.TextChanged += (_, _) => ApplyDisconnectedFilter();
-        disconnectedFilterFieldCmb.SelectedIndexChanged += (_, _) => ApplyDisconnectedFilter();
+         tabPageDisconnected.Controls.Add(disconnectedFilterFirstNameTxt);
+         tabPageDisconnected.Controls.Add(disconnectedFilterLastNameTxt);
+         tabPageDisconnected.Controls.Add(disconnectedFilterEmailTxt);
+         tabPageDisconnected.Controls.Add(disconnectedFilterRolesTxt);
+         tabPageDisconnected.Controls.Add(disconnectedClearFilterBtn);
+
+        disconnectedFilterFirstNameTxt.TextChanged += (_, _) => ApplyDisconnectedFilter();
+        disconnectedFilterLastNameTxt.TextChanged += (_, _) => ApplyDisconnectedFilter();
+        disconnectedFilterEmailTxt.TextChanged += (_, _) => ApplyDisconnectedFilter();
+        disconnectedFilterRolesTxt.TextChanged += (_, _) => ApplyDisconnectedFilter();
         disconnectedClearFilterBtn.Click += (_, _) =>
         {
-            if (disconnectedFilterTxt != null) disconnectedFilterTxt.Text = string.Empty;
-            if (disconnectedFilterFieldCmb != null) disconnectedFilterFieldCmb.SelectedIndex = 0;
+            disconnectedFilterFirstNameTxt.Text = string.Empty;
+            disconnectedFilterLastNameTxt.Text = string.Empty;
+            disconnectedFilterEmailTxt.Text = string.Empty;
+            disconnectedFilterRolesTxt.Text = string.Empty;
             ApplyDisconnectedFilter();
         };
         
@@ -698,8 +711,11 @@ partial class MainForm
     private System.Windows.Forms.Button saveDisconnectedBtn;
     private System.Windows.Forms.Label disconnectedTitleLbl;
     private System.Windows.Forms.BindingSource disconnectedBindingSource;
-    private TextBox disconnectedFilterTxt;
-    private ComboBox disconnectedFilterFieldCmb;
+
+    private TextBox disconnectedFilterFirstNameTxt;
+    private TextBox disconnectedFilterLastNameTxt;
+    private TextBox disconnectedFilterEmailTxt;
+    private TextBox disconnectedFilterRolesTxt;
     private Button disconnectedClearFilterBtn;
 
 
