@@ -21,7 +21,7 @@ public sealed class DataAccessDisconnected : IDisconnectedDataAccess
         if (string.IsNullOrWhiteSpace(conn))
         {
             throw new InvalidOperationException(
-                "Environment variable CHATBOTS_DB_CONNECTION is not set or is empty.");
+                "Environment variable GYM_DB_CONNECTION is not set or is empty.");
         }
 
         _sqlConnection = new SqlConnection(conn);
@@ -85,7 +85,6 @@ public sealed class DataAccessDisconnected : IDisconnectedDataAccess
             throw new DatabaseException("Error al escribir en la base de datos", ex);
         }
     }
-
 
     public async Task<bool> TestConnectionAsync()
     {

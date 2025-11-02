@@ -2,6 +2,8 @@ using GymManager_BE;
 using GymManager_BLL;
 using Microsoft.Extensions.Logging;
 using System.Windows.Forms.DataVisualization.Charting;
+using GymManager_DDAL;
+using System.Data;
 
 namespace GymManager.Forms;
 
@@ -51,6 +53,12 @@ public partial class MainForm : Form
 
     private IPaymentService ActiveCardPaymentService =>
         _xmlMode ? _xmlCardPaymentService : _cardPaymentService;
+
+    private readonly IDisconnectedDataAccess _disconnectedDataAccess =
+        DataAccessDisconnected.Instance;
+
+    private DataSet? _usersDataSet;
+    private DataTable? _usersTable;
 
     public MainForm(IUserService userService, IUserService xmlUserService, IFeeService feeService,
         IFeeService xmlFeeService, IPaymentService paymentService,
@@ -279,18 +287,6 @@ public partial class MainForm : Form
         }
 
         chartGenerateBtn.Click += ChartGenerateBtn_Click;
-
-        //
-        // var initialHide = reportTypeComboBox.SelectedItem?.ToString() == "Alumnos con más deuda";
-        // if (chartMonthComboBox != null) chartMonthComboBox.Visible = !initialHide;
-        // if (chartYearComboBox != null) chartYearComboBox.Visible = !initialHide;
-        // if (viewerMonthComboBox != null) viewerMonthComboBox.Visible = !initialHide;
-        // if (viewerYearComboBox != null) viewerYearComboBox.Visible = !initialHide;
-        //
-        // var initChartLabel = tabPageChart.Controls.OfType<Label>()
-        //     .FirstOrDefault(l => l.Text == "Mes/Año:");
-        // if (initChartLabel != null) initChartLabel.Visible = !initialHide;
-
         toggleXmlBtn.Click += ToggleXmlBtn_Click;
     }
 
@@ -298,19 +294,10 @@ public partial class MainForm : Form
     {
         try
         {
-            var users = await ActiveUserService.GetUsers();
-            FillUsersDataGrid(users);
-        }
-        catch (Exception exception)
-        {
-            MessageBox.Show("Error al cargar datos: " + exception.Message, ErrorCaption,
-                MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
-
-        try
-        {
             var fees = await ActiveFeeService.GetFees();
+            var users = await ActiveUserService.GetUsers();
 
+            FillUsersDataGrid(users);
             FillFeesDataGrid(fees);
         }
         catch (Exception exception)
@@ -440,9 +427,9 @@ public partial class MainForm : Form
 
     private async void ToggleXmlBtn_Click(object? sender, EventArgs e)
     {
-        _logger.LogInformation("Switching mode. XML: {XmlMode}", _xmlMode);
         try
         {
+            _logger.LogInformation("Switching mode. XML: {XmlMode}", _xmlMode);
             _xmlMode = !_xmlMode;
             UpdateXmlModeUI();
 
@@ -514,10 +501,214 @@ public partial class MainForm : Form
         }
     }
 
+    private async Task LoadDisconnectedUsers()
+    {
+        if (_usersDataSet != null && _usersTable != null) return;
+        try
+        {
+            const string query = """
+                                 SELECT
+                                     u.id,
+                                     u.first_name,
+                                     u.last_name,
+                                     u.email,
+                                     u.password,
+                                     u.active,
+                                     COALESCE(
+                                         STRING_AGG(
+                                             CASE
+                                                 WHEN r.role_name = 'Student' THEN 'ALUMNO'
+                                                 WHEN r.role_name = 'Trainer' THEN 'ENTRENADOR'
+                                                 WHEN r.role_name = 'Admin' THEN 'ADMINISTRADOR'
+                                                 ELSE 'ALUMNO'
+                                             END, ', '
+                                         ), 'ALUMNO'
+                                     ) as roles
+                                 FROM
+                                     users u
+                                 LEFT JOIN user_roles ur ON u.id = ur.user_id
+                                 LEFT JOIN roles r ON ur.role_id = r.id
+                                 GROUP BY
+                                     u.id, u.first_name, u.last_name, u.email, u.password, u.active
+                                 """;
+            _usersDataSet = await _disconnectedDataAccess.Read(
+                query, "Users");
+            _usersTable = _usersDataSet.Tables["Users"];
+            if (_usersTable is { PrimaryKey.Length: 0 } && _usersTable.Columns.Contains("Id"))
+                _usersTable.PrimaryKey = [_usersTable.Columns["Id"]!];
+            if (_usersTable != null)
+            {
+                if (_usersTable.Columns.Contains("first_name"))
+                    _usersTable.Columns["first_name"]!.Caption = "Nombre";
+                if (_usersTable.Columns.Contains("last_name"))
+                    _usersTable.Columns["last_name"]!.Caption = "Apellido";
+                if (_usersTable.Columns.Contains("email"))
+                    _usersTable.Columns["email"]!.Caption = "Correo Electrónico";
+                if (_usersTable.Columns.Contains("roles"))
+                    _usersTable.Columns["roles"]!.Caption = "Roles";
+                disconnectedUsersGridView.DataSource = _usersTable.DefaultView;
+                disconnectedUsersGridView.Columns["Roles"]!.ReadOnly = true;
+                if (disconnectedUsersGridView.Columns["first_name"] != null)
+                    disconnectedUsersGridView.Columns["first_name"]!.HeaderText = "Nombre";
+                if (disconnectedUsersGridView.Columns["last_name"] != null)
+                    disconnectedUsersGridView.Columns["last_name"]!.HeaderText = "Apellido";
+                if (disconnectedUsersGridView.Columns["email"] != null)
+                    disconnectedUsersGridView.Columns["email"]!.HeaderText = "Correo Electrónico";
+                if (disconnectedUsersGridView.Columns["roles"] != null)
+                    disconnectedUsersGridView.Columns["roles"]!.HeaderText = "Roles";
+                if (disconnectedUsersGridView.Columns["password"] != null)
+                    disconnectedUsersGridView.Columns["password"]!.Visible = false;
+                if (disconnectedUsersGridView.Columns["active"] != null)
+                    disconnectedUsersGridView.Columns["active"]!.Visible = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al cargar usuarios desconectados: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private static User DataRowToUser(DataRow row)
+    {
+        return new User
+        {
+            Id = row.Table.Columns.Contains("Id") && row["Id"] != DBNull.Value
+                ? Convert.ToInt64(row["Id"])
+                : 0,
+            FirstName = row["first_name"].ToString(),
+            LastName = row["last_name"].ToString(),
+            Email = row["email"].ToString(),
+            UserRoles = row["Roles"]!.ToString().Split(",").Select(UserRoleExtensions.FromRoleName)
+                .ToList(),
+            Password = row["password"].ToString()
+        };
+    }
+
+    private static void ApplyUserToDataRow(User u, DataRow row)
+    {
+        if (row.Table.Columns.Contains("first_name"))
+            row["first_name"] = u.FirstName ?? (object)DBNull.Value;
+        if (row.Table.Columns.Contains("last_name"))
+            row["last_name"] = u.LastName ?? (object)DBNull.Value;
+        if (row.Table.Columns.Contains("email")) row["email"] = u.Email ?? (object)DBNull.Value;
+        if (row.Table.Columns.Contains("Id") && u.Id > 0) row["Id"] = u.Id;
+        if (row.Table.Columns.Contains("roles"))
+            row["roles"] = string.Join(", ", u.UserRoles!.Select(r => r.GetRoleName()));
+    }
+
+    private async void NewDisconnectedUserBtn_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            var createForm = new CreateUserForm();
+            if (createForm.ShowDialog() != DialogResult.OK) return;
+            var newUser = createForm.CreatedUser!;
+            if (_usersTable == null) await LoadDisconnectedUsers();
+            var row = _usersTable!.NewRow();
+            ApplyUserToDataRow(newUser, row);
+            _usersTable.Rows.Add(row);
+            disconnectedUsersGridView.Refresh();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al crear usuario: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private async void EditDisconnectedUserBtn_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (disconnectedUsersGridView.CurrentRow == null) return;
+            if (_usersTable == null) await LoadDisconnectedUsers();
+            if (disconnectedUsersGridView.CurrentRow.DataBoundItem is not DataRowView rowView)
+                return;
+            var row = rowView.Row;
+            var user = DataRowToUser(row);
+            var editForm = new EditUserForm(user);
+            if (editForm.ShowDialog() != DialogResult.OK) return;
+            var edited = editForm.EditedUser;
+            ApplyUserToDataRow(edited, row);
+            disconnectedUsersGridView.Refresh();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al editar usuario: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private async void DeleteDisconnectedUserBtn_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (disconnectedUsersGridView.CurrentRow == null) return;
+            if (_usersTable == null) await LoadDisconnectedUsers();
+            if (disconnectedUsersGridView.CurrentRow.DataBoundItem is not DataRowView rowView)
+                return;
+            var row = rowView.Row;
+            if (MessageBox.Show("¿Confirma borrar el usuario?", "Confirmar",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            {
+                row.Delete();
+                disconnectedUsersGridView.Refresh();
+            }
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al borrar usuario: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void DiscardDisconnectedBtn_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_usersDataSet == null) return;
+            _usersDataSet.RejectChanges();
+            disconnectedUsersGridView.Refresh();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al descartar cambios: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private async void SaveDisconnectedBtn_Click(object? sender, EventArgs e)
+    {
+        try
+        {
+            if (_usersDataSet == null) return;
+            var affected = await _disconnectedDataAccess.Write(_usersDataSet);
+            MessageBox.Show($"Cambios guardados. Filas afectadas: {affected}", SuccessCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            _usersDataSet = null;
+            _usersTable = null;
+            await LoadDisconnectedUsers();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error al guardar cambios: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
     private async void MyDataTabControl_SelectedIndexChanged(object sender, EventArgs e)
     {
         try
         {
+            // usar la referencia a la pestaña para detectar selección (más fiable que comparar texto)
+            if (myDataTabControl.SelectedTab != null &&
+                myDataTabControl.SelectedTab == tabPageDisconnected)
+            {
+                await LoadDisconnectedUsers();
+                return;
+            }
+
             if (myDataTabControl.SelectedTab == tabPage3)
             {
                 var user = SessionManager.CurrentUser!;
@@ -915,6 +1106,46 @@ public partial class MainForm : Form
         catch (Exception ex)
         {
             MessageBox.Show($"Error al generar gráfico: {ex.Message}", ErrorCaption,
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void ApplyDisconnectedFilter()
+    {
+        try
+        {
+            if (_usersTable == null) return;
+            var view = _usersTable.DefaultView;
+            if (disconnectedFilterFieldCmb == null || disconnectedFilterTxt == null)
+            {
+                view.RowFilter = string.Empty;
+                return;
+            }
+
+            var sel = disconnectedFilterFieldCmb.SelectedItem?.ToString();
+            if (string.IsNullOrEmpty(sel))
+            {
+                view.RowFilter = string.Empty;
+                return;
+            }
+
+            var parts = sel.Split('|');
+            var columnName = parts.Length > 1 ? parts[1] : parts[0];
+            var text = disconnectedFilterTxt.Text.Trim() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(text))
+            {
+                view.RowFilter = string.Empty;
+                return;
+            }
+
+            var safe = text.Replace("'", "''");
+
+            view.RowFilter = $"Convert([{columnName}], 'System.String') LIKE '%{safe}%'";
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Error aplicando filtro: {ex.Message}", ErrorCaption,
                 MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }

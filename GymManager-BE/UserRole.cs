@@ -17,4 +17,9 @@ public static class UserRoleExtensions
     };
 
     public static string GetRoleName(this UserRole role) => RoleNames[role];
+
+    public static UserRole FromRoleName(string roleName)
+    {
+        return RoleNames.FirstOrDefault(kv => kv.Value == roleName.Trim()).Key;
+    }
 }

@@ -71,6 +71,17 @@ partial class MainForm
         chartGenerateBtn = new System.Windows.Forms.Button();
         reportChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
 
+        tabPageDisconnected = new System.Windows.Forms.TabPage();
+        disconnectedUsersGridView = new System.Windows.Forms.DataGridView();
+        newDisconnectedUserBtn = new System.Windows.Forms.Button();
+        editDisconnectedUserBtn = new System.Windows.Forms.Button();
+        deleteDisconnectedUserBtn = new System.Windows.Forms.Button();
+        discardDisconnectedBtn = new System.Windows.Forms.Button();
+        saveDisconnectedBtn = new System.Windows.Forms.Button();
+        disconnectedTitleLbl = new System.Windows.Forms.Label();
+
+        disconnectedBindingSource = new System.Windows.Forms.BindingSource(components);
+        
         myDataTabControl.SuspendLayout();
         tabPage1.SuspendLayout();
         ((System.ComponentModel.ISupportInitialize)usersGridView).BeginInit();
@@ -87,6 +98,7 @@ partial class MainForm
         myDataTabControl.Controls.Add(tabPage1);
         myDataTabControl.Controls.Add(tabPage2);
         myDataTabControl.Controls.Add(tabPage3);
+        myDataTabControl.Controls.Add(tabPageDisconnected);
         myDataTabControl.ImeMode = System.Windows.Forms.ImeMode.NoControl;
         myDataTabControl.Location = new System.Drawing.Point(12, 13);
         myDataTabControl.Name = "myDataTabControl";
@@ -406,8 +418,8 @@ partial class MainForm
         toggleXmlBtn.TabIndex = 5;
         toggleXmlBtn.Text = "Modo: No XML";
         toggleXmlBtn.UseVisualStyleBackColor = true;
-        
-        
+
+
         chartMonthComboBox = new ComboBox
         {
             Location = new Point(20, 50),
@@ -418,7 +430,7 @@ partial class MainForm
         for (var m = 1; m <= 12; m++)
             chartMonthComboBox.Items.Add(new DateTime(1, m, 1).ToString("MMMM"));
         chartMonthComboBox.SelectedIndex = 0;
-        
+
         var currentYear = DateTime.Now.Year;
 
         chartYearComboBox = new ComboBox
@@ -454,7 +466,7 @@ partial class MainForm
             Size = new Size(100, 23),
             DropDownStyle = ComboBoxStyle.DropDownList
         };
-        
+
         for (var y = currentYear - 5; y <= currentYear + 1; y++)
             viewerYearComboBox.Items.Add(y);
         viewerYearComboBox.SelectedItem = currentYear;
@@ -463,7 +475,145 @@ partial class MainForm
         reportChart.Location = new Point(20, 90);
         reportChart.Size = new Size(720, 300);
         reportChart.SendToBack();
+        
+        //
+        // tabPageDisconnected
+        //
+        tabPageDisconnected.Controls.Add(disconnectedTitleLbl);
+        tabPageDisconnected.Controls.Add(disconnectedUsersGridView);
+        tabPageDisconnected.Controls.Add(newDisconnectedUserBtn);
+        tabPageDisconnected.Controls.Add(editDisconnectedUserBtn);
+        tabPageDisconnected.Controls.Add(deleteDisconnectedUserBtn);
+        tabPageDisconnected.Controls.Add(discardDisconnectedBtn);
+        tabPageDisconnected.Controls.Add(saveDisconnectedBtn);
+        tabPageDisconnected.Location = new System.Drawing.Point(4, 24);
+        tabPageDisconnected.Name = "tabPageDisconnected";
+        tabPageDisconnected.Padding = new System.Windows.Forms.Padding(3);
+        tabPageDisconnected.Size = new System.Drawing.Size(768, 398);
+        tabPageDisconnected.TabIndex = 5;
+        tabPageDisconnected.Text = "Usuarios - Desconectado";
+        tabPageDisconnected.UseVisualStyleBackColor = true;
 
+        //
+        // disconnectedTitleLbl
+        //
+        disconnectedTitleLbl.Location = new System.Drawing.Point(10, 10);
+        disconnectedTitleLbl.Name = "disconnectedTitleLbl";
+        disconnectedTitleLbl.Size = new System.Drawing.Size(300, 23);
+        disconnectedTitleLbl.TabIndex = 0;
+        disconnectedTitleLbl.Text = "Usuarios (modo desconectado)";
+
+        //
+        // disconnectedUsersGridView
+        //
+        disconnectedUsersGridView.Location = new System.Drawing.Point(0, 40);
+        disconnectedUsersGridView.Name = "disconnectedUsersGridView";
+        disconnectedUsersGridView.Size = new System.Drawing.Size(768, 300);
+        disconnectedUsersGridView.TabIndex = 1;
+        disconnectedUsersGridView.ReadOnly = false;
+        disconnectedUsersGridView.AllowUserToAddRows = false;
+        disconnectedUsersGridView.AllowUserToDeleteRows = false;
+        disconnectedUsersGridView.DataSource = disconnectedBindingSource;
+
+        //
+        // newDisconnectedUserBtn
+        //
+        newDisconnectedUserBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+        newDisconnectedUserBtn.Location = new System.Drawing.Point(200, 350);
+        newDisconnectedUserBtn.Name = "newDisconnectedUserBtn";
+        newDisconnectedUserBtn.Size = new System.Drawing.Size(120, 23);
+        newDisconnectedUserBtn.TabIndex = 2;
+        newDisconnectedUserBtn.Text = "Nuevo (desconectado)";
+        newDisconnectedUserBtn.UseVisualStyleBackColor = true;
+        newDisconnectedUserBtn.Click += new System.EventHandler(this.NewDisconnectedUserBtn_Click);
+
+        //
+        // editDisconnectedUserBtn
+        //
+        editDisconnectedUserBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+        editDisconnectedUserBtn.Location = new System.Drawing.Point(330, 350);
+        editDisconnectedUserBtn.Name = "editDisconnectedUserBtn";
+        editDisconnectedUserBtn.Size = new System.Drawing.Size(120, 23);
+        editDisconnectedUserBtn.TabIndex = 3;
+        editDisconnectedUserBtn.Text = "Editar (desconectado)";
+        editDisconnectedUserBtn.UseVisualStyleBackColor = true;
+        editDisconnectedUserBtn.Click += new System.EventHandler(this.EditDisconnectedUserBtn_Click);
+
+        //
+        // deleteDisconnectedUserBtn
+        //
+        deleteDisconnectedUserBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+        deleteDisconnectedUserBtn.Location = new System.Drawing.Point(460, 350);
+        deleteDisconnectedUserBtn.Name = "deleteDisconnectedUserBtn";
+        deleteDisconnectedUserBtn.Size = new System.Drawing.Size(120, 23);
+        deleteDisconnectedUserBtn.TabIndex = 4;
+        deleteDisconnectedUserBtn.Text = "Borrar (desconectado)";
+        deleteDisconnectedUserBtn.UseVisualStyleBackColor = true;
+        deleteDisconnectedUserBtn.Click += new System.EventHandler(this.DeleteDisconnectedUserBtn_Click);
+
+        //
+        // discardDisconnectedBtn
+        //
+        discardDisconnectedBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+        discardDisconnectedBtn.Location = new System.Drawing.Point(590, 350);
+        discardDisconnectedBtn.Name = "discardDisconnectedBtn";
+        discardDisconnectedBtn.Size = new System.Drawing.Size(80, 23);
+        discardDisconnectedBtn.TabIndex = 5;
+        discardDisconnectedBtn.Text = "Descartar";
+        discardDisconnectedBtn.UseVisualStyleBackColor = true;
+        discardDisconnectedBtn.Click += new System.EventHandler(this.DiscardDisconnectedBtn_Click);
+
+        //
+        // saveDisconnectedBtn
+        //
+        saveDisconnectedBtn.Cursor = System.Windows.Forms.Cursors.Hand;
+        saveDisconnectedBtn.Location = new System.Drawing.Point(675, 350);
+        saveDisconnectedBtn.Name = "saveDisconnectedBtn";
+        saveDisconnectedBtn.Size = new System.Drawing.Size(80, 23);
+        saveDisconnectedBtn.TabIndex = 6;
+        saveDisconnectedBtn.Text = "Guardar";
+        saveDisconnectedBtn.UseVisualStyleBackColor = true;
+        saveDisconnectedBtn.Click += new System.EventHandler(this.SaveDisconnectedBtn_Click);
+        
+        disconnectedFilterFieldCmb = new ComboBox
+        {
+            Location = new Point(10, 10),
+            Size = new Size(140, 23),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        
+        disconnectedFilterFieldCmb.Items.Add("Nombre|first_name");
+        disconnectedFilterFieldCmb.Items.Add("Apellido|last_name");
+        disconnectedFilterFieldCmb.Items.Add("Correo|email");
+        disconnectedFilterFieldCmb.Items.Add("Roles|roles");
+        disconnectedFilterFieldCmb.SelectedIndex = 0;
+
+        disconnectedFilterTxt = new TextBox
+        {
+            Location = new Point(160, 10),
+            Size = new Size(240, 23)
+        };
+
+        disconnectedClearFilterBtn = new Button
+        {
+            Location = new Point(410, 9),
+            Size = new Size(75, 24),
+            Text = "Limpiar"
+        };
+        
+        tabPageDisconnected.Controls.Add(disconnectedFilterFieldCmb);
+        tabPageDisconnected.Controls.Add(disconnectedFilterTxt);
+        tabPageDisconnected.Controls.Add(disconnectedClearFilterBtn);
+
+        disconnectedFilterTxt.TextChanged += (_, _) => ApplyDisconnectedFilter();
+        disconnectedFilterFieldCmb.SelectedIndexChanged += (_, _) => ApplyDisconnectedFilter();
+        disconnectedClearFilterBtn.Click += (_, _) =>
+        {
+            if (disconnectedFilterTxt != null) disconnectedFilterTxt.Text = string.Empty;
+            if (disconnectedFilterFieldCmb != null) disconnectedFilterFieldCmb.SelectedIndex = 0;
+            ApplyDisconnectedFilter();
+        };
+        
         // 
         // MainForm
         // 
@@ -539,7 +689,20 @@ partial class MainForm
     private ComboBox viewerMonthComboBox;
     private ComboBox viewerYearComboBox;
 
-    
+    private System.Windows.Forms.TabPage tabPageDisconnected;
+    private System.Windows.Forms.DataGridView disconnectedUsersGridView;
+    private System.Windows.Forms.Button newDisconnectedUserBtn;
+    private System.Windows.Forms.Button editDisconnectedUserBtn;
+    private System.Windows.Forms.Button deleteDisconnectedUserBtn;
+    private System.Windows.Forms.Button discardDisconnectedBtn;
+    private System.Windows.Forms.Button saveDisconnectedBtn;
+    private System.Windows.Forms.Label disconnectedTitleLbl;
+    private System.Windows.Forms.BindingSource disconnectedBindingSource;
+    private TextBox disconnectedFilterTxt;
+    private ComboBox disconnectedFilterFieldCmb;
+    private Button disconnectedClearFilterBtn;
+
+
     #endregion
 }
 
