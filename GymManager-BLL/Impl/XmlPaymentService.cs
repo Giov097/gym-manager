@@ -4,7 +4,7 @@ using GymManager_MPP;
 
 namespace GymManager_BLL.Impl;
 
-public class XmlPaymentService : IPaymentService //TODO: dividir por tipo de pago
+public class XmlPaymentService : IPaymentService
 {
     private readonly XmlPaymentMapper _mapper = new("../../../data.xml");
 
